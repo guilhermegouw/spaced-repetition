@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import subprocess
 
 import pyperclip
 import questionary
@@ -178,13 +179,27 @@ def review_challenges(console):
         return
 
     folder_name, challenge_path = setup_challenge_files(selected_challenge)
-    os.system(f"{os.getenv('EDITOR', 'nvim')} {challenge_path}")
-    generate_challenge_prompt(console, challenge_path)
+
+    if os.getenv("EDITOR") == "code":
+        vscode_flow(console, folder_name, challenge_path)
+    else:
+        os.system(f"{os.getenv('EDITOR', 'nvim')} {challenge_path}")
+        generate_challenge_prompt(console, challenge_path)
+
     grade = questionary.text(
         "Enter your score for this challenge (0-3):"
     ).ask()
     update_challenge_review(console, selected_challenge["id"], grade)
     shutil.rmtree(folder_name)
+
+
+def vscode_flow(console, folder_name, challenge_path):
+    if os.path.isdir(folder_name):
+        subprocess.run(["code", folder_name])
+    else:
+        console.print("Challenge folder does not exist!")
+    input("Press ENTER once the challenge is solved...")
+    generate_challenge_prompt(console, challenge_path)
 
 
 def add_new_challenge(console):

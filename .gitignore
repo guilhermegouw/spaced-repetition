@@ -124,6 +124,8 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+# Exclude sqlite db
+questions.db
 
 ########################JAVASCRIPT############################################
 # Logs
