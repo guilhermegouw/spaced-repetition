@@ -46,7 +46,7 @@ def setup_python_files(challenge, folder_name):
             f'"""\n'
             f"Title: {challenge['title']}\n\n"
             f"Description:\n{challenge['description']}\n"
-            f'"""\n'
+            f'"""\n\n\n'
             f"def {folder_name}():\n"
             f"    # Write your solution here...\n"
             f"    pass\n"
@@ -55,6 +55,8 @@ def setup_python_files(challenge, folder_name):
     test_path = os.path.join(folder_name, "test_challenge.py")
     if challenge["testcases"]:
         with open(test_path, "w", encoding="utf-8") as test_file:
+            imports = f"import pytest\n\nfrom challenge import {folder_name}\n"
+            test_file.write(imports)
             test_file.write(challenge["testcases"])
     return challenge_path
 
