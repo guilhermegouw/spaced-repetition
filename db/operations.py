@@ -358,5 +358,52 @@ def update_ease_factor(question_id, ease_factor):
         raise
 
 
+def get_challenges_without_testcases():
+    """
+    Returns a list of challenges that don't have test cases.
+    """
+    query = """
+    SELECT id, title, description, language FROM challenges
+    WHERE testcases IS NULL OR testcases = '';
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query)
+        results = cursor.fetchall()
+        conn.close()
+
+        challenges = [
+            {
+                "id": row[0],
+                "title": row[1],
+                "description": row[2],
+                "language": row[3],
+            }
+            for row in results
+        ]
+        return challenges
+    except sqlite3.Error as e:
+        print(f"Error retrieving challenges without test cases: {e}")
+        raise
+
+
+def update_challenge_testcases(challenge_id, testcases):
+    """
+    Updates an existing challenge with new test cases.
+    """
+    query = "UPDATE challenges SET testcases = ? WHERE id = ?;"
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, (testcases, challenge_id))
+        conn.commit()
+        conn.close()
+        print(f"Test cases added to challenge ID {challenge_id}.")
+    except sqlite3.Error as e:
+        print(f"Error updating test cases for challenge {challenge_id}: {e}")
+        raise
+
+
 if __name__ == "__main__":
     print(get_due_challenges())

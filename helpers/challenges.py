@@ -7,7 +7,9 @@ import pyperclip
 import questionary
 
 from db.operations import (add_challenge, get_all_challenges,
-                           get_due_challenges, mark_reviewed_challenge)
+                           get_challenges_without_testcases,
+                           get_due_challenges, mark_reviewed_challenge,
+                           update_challenge_testcases)
 from templates import CHALLENGE_PROMPT_TEMPLATE
 
 
@@ -246,3 +248,37 @@ def list_challenges(console):
         console.print(
             "[bold green]No challenges in the database yet![/bold green]"
         )
+
+
+def add_testcases_to_challenge(console):
+    """
+    Allows the user to add test cases to an existing challenge that currently
+    lacks it.
+    """
+    challenges = get_challenges_without_testcases()
+
+    if not challenges:
+        console.print(
+            "[bold green]All challenges already have test cases![/bold green]"
+        )
+        return
+
+    challenge_choices = [f"ID: {c['id']} - {c['title']}" for c in challenges]
+    selected = questionary.select(
+        "Select a challenge to add testcases:", choices=challenge_choices
+    ).ask()
+
+    if not selected:
+        console.print("[bold yellow]No challenge selected.[/bold yellow]")
+        return
+
+    selected_id = int(selected.split(":")[1].strip().split(" ")[0])
+    testcases = questionary.text(
+        "Enter test cases (format as needed/imports aren't necessary):"
+    ).ask()
+
+    if not testcases.strip():
+        console.print("[bold red]Test cases cannot be empty![/bold red]")
+        return
+    update_challenge_testcases(selected_id, testcases)
+    console.print("[bold green]Test cases added successfully![/bold green]")

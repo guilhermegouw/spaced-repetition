@@ -2,8 +2,8 @@ import questionary
 import typer
 from rich.console import Console
 
-from helpers.challenges import (add_new_challenge, list_challenges,
-                                review_challenges)
+from helpers.challenges import (add_new_challenge, add_testcases_to_challenge,
+                                list_challenges, review_challenges)
 from helpers.questions import (add_new_question, list_questions,
                                review_questions)
 
@@ -55,6 +55,14 @@ def list():
         list_questions(console)
     elif list_type == "Challenges":
         list_challenges(console)
+
+
+@app.command()
+def add_testcases():
+    """
+    Add test cases to an existing challenge that has none.
+    """
+    add_testcases_to_challenge(console)
 
 
 if __name__ == "__main__":
