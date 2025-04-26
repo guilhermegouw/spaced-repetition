@@ -3,9 +3,10 @@ import typer
 from rich.console import Console
 
 from helpers.challenges import (add_new_challenge, add_testcases_to_challenge,
-                                list_challenges, review_challenges)
+                                list_challenges, review_challenges,
+                                update_existing_challenge)
 from helpers.questions import (add_new_question, list_questions,
-                               review_questions)
+                               review_questions, update_existing_question)
 
 app = typer.Typer()
 console = Console()
@@ -55,6 +56,21 @@ def list():
         list_questions(console)
     elif list_type == "Challenges":
         list_challenges(console)
+
+
+@app.command()
+def update():
+    """
+    Update an existing question or challenge.
+    """
+    update_type = questionary.select(
+        "What would you like to update?", choices=["Question", "Challenge"]
+    ).ask()
+
+    if update_type == "Question":
+        update_existing_question(console)
+    elif update_type == "Challenge":
+        update_existing_challenge(console)
 
 
 @app.command()

@@ -5,7 +5,7 @@ import pyperclip
 import questionary
 
 from db.operations import (add_question, get_all_questions, get_due_questions,
-                           mark_reviewed)
+                           mark_reviewed, update_question)
 from templates import QUESTION_PROMPT_TEMPLATE
 
 
@@ -144,3 +144,42 @@ def list_questions(console):
         console.print(
             "[bold green]No questions in the database yet![/bold green]"
         )
+
+
+def update_existing_question(console):
+    """
+    Allows the user to update an existing question.
+    """
+    questions = get_all_questions()
+    if not questions:
+        console.print("[bold red]No questions in the database to update![/bold red]")
+        return
+    question_choices = [f"ID: {q['id']} - {q['question']}" for q in questions]
+    selected = questionary.select(
+        "Select a question to update:", choices=question_choices
+    ).ask()
+    if not selected:
+        console.print("[bold yellow]No question selected.[/bold yellow]")
+        return
+    selected_id = int(selected.split(":")[1].strip().split(" ")[0])
+    selected_question = next(q for q in questions if q['id'] == selected_id)
+    # Ask what to update
+    console.print(f"[bold cyan]Current question:[/bold cyan] {selected_question['question']}")
+    console.print(f"[bold cyan]Current tags:[/bold cyan] {selected_question['tags']}")
+    update_question_text = questionary.confirm("Update the question text?").ask()
+    new_question = None
+    if update_question_text:
+        new_question = questionary.text(
+            "Enter the new question text:", default=selected_question['question']
+        ).ask()
+    update_tags = questionary.confirm("Update the tags?").ask()
+    new_tags = None
+    if update_tags:
+        new_tags = questionary.text(
+            "Enter the new tags (comma-separated):", default=selected_question['tags'] or ""
+        ).ask()
+    if update_question_text or update_tags:
+        update_question(selected_id, new_question, new_tags)
+        console.print("[bold green]Question updated successfully![/bold green]")
+    else:
+        console.print("[bold yellow]No changes made.[/bold yellow]")

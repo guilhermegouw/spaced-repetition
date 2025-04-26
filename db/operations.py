@@ -405,5 +405,101 @@ def update_challenge_testcases(challenge_id, testcases):
         raise
 
 
+# Add to db/operations.py
+def update_question(question_id, new_question=None, new_tags=None):
+    """
+    Updates an existing question with new content.
+    
+    :param question_id: The ID of the question to update.
+    :param new_question: New text for the question (optional).
+    :param new_tags: New tags for the question (optional).
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Build the SQL query dynamically based on what needs to be updated
+        fields_to_update = []
+        params = []
+        
+        if new_question is not None:
+            fields_to_update.append("question = ?")
+            params.append(new_question)
+            
+        if new_tags is not None:
+            fields_to_update.append("tags = ?")
+            params.append(new_tags)
+            
+        if not fields_to_update:
+            return  # Nothing to update
+            
+        query = f"UPDATE questions SET {', '.join(fields_to_update)} WHERE id = ?"
+        params.append(question_id)
+        
+        cursor.execute(query, params)
+        
+        if cursor.rowcount == 0:
+            raise ValueError(f"No question found with ID {question_id}.")
+            
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error updating question: {e}")
+        raise
+
+def update_challenge(challenge_id, new_title=None, new_description=None, new_language=None, new_testcases=None):
+    """
+    Updates an existing challenge with new content.
+    
+    :param challenge_id: The ID of the challenge to update.
+    :param new_title: New title for the challenge (optional).
+    :param new_description: New description for the challenge (optional).
+    :param new_language: New language for the challenge (optional).
+    :param new_testcases: New test cases for the challenge (optional).
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Build the SQL query dynamically based on what needs to be updated
+        fields_to_update = []
+        params = []
+        
+        if new_title is not None:
+            fields_to_update.append("title = ?")
+            params.append(new_title)
+            
+        if new_description is not None:
+            fields_to_update.append("description = ?")
+            params.append(new_description)
+            
+        if new_language is not None:
+            fields_to_update.append("language = ?")
+            params.append(new_language)
+            
+        if new_testcases is not None:
+            fields_to_update.append("testcases = ?")
+            params.append(new_testcases)
+            
+        if not fields_to_update:
+            return  # Nothing to update
+            
+        query = f"UPDATE challenges SET {', '.join(fields_to_update)} WHERE id = ?"
+        params.append(challenge_id)
+        
+        cursor.execute(query, params)
+        
+        if cursor.rowcount == 0:
+            raise ValueError(f"No challenge found with ID {challenge_id}.")
+            
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error updating challenge: {e}")
+        raise
+
+
 if __name__ == "__main__":
     print(get_due_challenges())

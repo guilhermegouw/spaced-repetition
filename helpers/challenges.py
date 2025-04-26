@@ -9,7 +9,7 @@ import questionary
 from db.operations import (add_challenge, get_all_challenges,
                            get_challenges_without_testcases,
                            get_due_challenges, mark_reviewed_challenge,
-                           update_challenge_testcases)
+                           update_challenge, update_challenge_testcases)
 from templates import CHALLENGE_PROMPT_TEMPLATE
 
 
@@ -282,3 +282,56 @@ def add_testcases_to_challenge(console):
         return
     update_challenge_testcases(selected_id, testcases)
     console.print("[bold green]Test cases added successfully![/bold green]")
+
+
+def update_existing_challenge(console):
+    """
+    Allows the user to update an existing challenge.
+    """
+    challenges = get_all_challenges()
+    if not challenges:
+        console.print("[bold red]No challenges in the database to update![/bold red]")
+        return
+    challenge_choices = [f"ID: {c['id']} - {c['title']}" for c in challenges]
+    selected = questionary.select(
+        "Select a challenge to update:", choices=challenge_choices
+    ).ask()
+    if not selected:
+        console.print("[bold yellow]No challenge selected.[/bold yellow]")
+        return
+    selected_id = int(selected.split(":")[1].strip().split(" ")[0])
+    selected_challenge = next(c for c in challenges if c['id'] == selected_id)
+    console.print(f"[bold cyan]Current title:[/bold cyan] {selected_challenge['title']}")
+    console.print(f"[bold cyan]Current description:[/bold cyan] {selected_challenge['description']}")
+    console.print(f"[bold cyan]Current language:[/bold cyan] {selected_challenge['language']}")
+    update_title = questionary.confirm("Update the title?").ask()
+    new_title = None
+    if update_title:
+        new_title = questionary.text(
+            "Enter the new title:", default=selected_challenge['title']
+        ).ask()
+    update_description = questionary.confirm("Update the description?").ask()
+    new_description = None
+    if update_description:
+        new_description = questionary.text(
+            "Enter the new description:", default=selected_challenge['description']
+        ).ask()
+    update_language = questionary.confirm("Update the language?").ask()
+    new_language = None
+    if update_language:
+        new_language = questionary.select(
+            "Choose the new language:",
+            choices=["python", "javascript"],
+            default=selected_challenge['language']
+        ).ask()
+    update_testcases = questionary.confirm("Update the test cases?").ask()
+    new_testcases = None
+    if update_testcases:
+        new_testcases = questionary.text(
+            "Enter the new test cases:", default=selected_challenge['testcases'] or ""
+        ).ask()
+    if any([update_title, update_description, update_language, update_testcases]):
+        update_challenge(selected_id, new_title, new_description, new_language, new_testcases)
+        console.print("[bold green]Challenge updated successfully![/bold green]")
+    else:
+        console.print("[bold yellow]No changes made.[/bold yellow]")
