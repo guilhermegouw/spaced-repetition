@@ -17,7 +17,7 @@ Thank you!
 """
 
 CHALLENGE_PROMPT_TEMPLATE = """
-Hi Huyang, please evaluate my solution for the following challenge
+Hi Claude, please evaluate my solution for the following challenge
 based on these criteria:\n
     **Correctness** (0-3): Does the solution produce the correct results?\n
     **Clarity** (0-3): Is the code easy to understand?\n
