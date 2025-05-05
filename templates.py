@@ -1,5 +1,5 @@
 QUESTION_PROMPT_TEMPLATE = """
-Hi Huyang, please evaluate my answer to the following question based on:
+Hi Claude, please evaluate my answer to the following question based on:
 - Accuracy (0-3)
 - Completeness (0-3)
 - Clarity (0-3)
@@ -25,5 +25,5 @@ based on these criteria:\n
     Score (0–3): (Correctness + Clarity + Efficiency) / 3\n
 Here is the full content of my solution:\n
 {challenge_content}\n\n
-Please provide your evaluation + Score."
+Please provide your evaluation + Score.
 """
