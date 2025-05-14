@@ -4,8 +4,8 @@ import tempfile
 import pyperclip
 import questionary
 
-from db.operations import (add_question, get_all_questions, get_due_questions,
-                           mark_reviewed, update_question)
+from db.operations import (add_question, delete_question, get_all_questions,
+                           get_due_questions, mark_reviewed, update_question)
 from templates import QUESTION_PROMPT_TEMPLATE
 
 
@@ -123,6 +123,37 @@ def add_new_question(console):
         console.print("[bold green]Question added successfully![/bold green]")
     else:
         console.print("[bold red]Question cannot be empty.[/bold red]")
+
+
+def delete_existing_question(console):
+    """
+    Allows the user to delete an existing question.
+    """
+    questions = get_all_questions()
+    if not questions:
+        console.print("[bold red]No questions in the database to delete![/bold red]")
+        return
+    question_choices = [f"ID: {q['id']} - {q['question']}" for q in questions]
+    selected = questionary.select(
+        "Select a question to delete:", choices=question_choices
+    ).ask()
+    if not selected:
+        console.print("[bold yellow]No question selected.[/bold yellow]")
+        return
+    selected_id = int(selected.split(":")[1].strip().split(" ")[0])
+    confirm = questionary.confirm(
+        f"Are you sure you want to delete this question? This action cannot be undone."
+    ).ask()
+    if not confirm:
+        console.print("[bold yellow]Deletion cancelled.[/bold yellow]")
+        return
+    try:
+        if delete_question(selected_id):
+            console.print(f"[bold green]Question ID {selected_id} has been deleted.[/bold green]")
+        else:
+            console.print(f"[bold red]Failed to delete question ID {selected_id}.[/bold red]")
+    except Exception as e:
+        console.print(f"[bold red]Error deleting question: {e}[/bold red]")
 
 
 def list_questions(console):

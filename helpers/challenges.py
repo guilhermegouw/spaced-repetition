@@ -6,7 +6,7 @@ import subprocess
 import pyperclip
 import questionary
 
-from db.operations import (add_challenge, get_all_challenges,
+from db.operations import (add_challenge, delete_challenge, get_all_challenges,
                            get_challenges_without_testcases,
                            get_due_challenges, mark_reviewed_challenge,
                            update_challenge, update_challenge_testcases)
@@ -227,6 +227,37 @@ def add_new_challenge(console):
         console.print(
             "[bold red]All required fields must be filled![/bold red]"
         )
+
+
+def delete_existing_challenge(console):
+    """
+    Allows the user to delete an existing challenge.
+    """
+    challenges = get_all_challenges()
+    if not challenges:
+        console.print("[bold red]No challenges in the database to delete![/bold red]")
+        return
+    challenge_choices = [f"ID: {c['id']} - {c['title']}" for c in challenges]
+    selected = questionary.select(
+        "Select a challenge to delete:", choices=challenge_choices
+    ).ask()
+    if not selected:
+        console.print("[bold yellow]No challenge selected.[/bold yellow]")
+        return
+    selected_id = int(selected.split(":")[1].strip().split(" ")[0])
+    confirm = questionary.confirm(
+        f"Are you sure you want to delete this challenge? This action cannot be undone."
+    ).ask()
+    if not confirm:
+        console.print("[bold yellow]Deletion cancelled.[/bold yellow]")
+        return
+    try:
+        if delete_challenge(selected_id):
+            console.print(f"[bold green]Challenge ID {selected_id} has been deleted.[/bold green]")
+        else:
+            console.print(f"[bold red]Failed to delete challenge ID {selected_id}.[/bold red]")
+    except Exception as e:
+        console.print(f"[bold red]Error deleting challenge: {e}[/bold red]")
 
 
 def list_challenges(console):

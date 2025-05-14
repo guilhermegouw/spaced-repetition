@@ -3,10 +3,11 @@ import typer
 from rich.console import Console
 
 from helpers.challenges import (add_new_challenge, add_testcases_to_challenge,
-                                list_challenges, review_challenges,
-                                update_existing_challenge)
-from helpers.questions import (add_new_question, list_questions,
-                               review_questions, update_existing_question)
+                                delete_existing_challenge, list_challenges,
+                                review_challenges, update_existing_challenge)
+from helpers.questions import (add_new_question, delete_existing_question,
+                               list_questions, review_questions,
+                               update_existing_question)
 
 app = typer.Typer()
 console = Console()
@@ -71,6 +72,21 @@ def update():
         update_existing_question(console)
     elif update_type == "Challenge":
         update_existing_challenge(console)
+
+
+@app.command()
+def delete():
+    """
+    Delete an existing question or challenge from the database.
+    """
+    delete_type = questionary.select(
+        "What would you like to delete?", choices=["Question", "Challenge"]
+    ).ask()
+
+    if delete_type == "Question":
+        delete_existing_question(console)
+    elif delete_type == "Challenge":
+        delete_existing_challenge(console)
 
 
 @app.command()
