@@ -1,0 +1,9 @@
+Your developers want to run a fully provisioned EC2 instances to support their
+application code deployments but prefer not to have to worry about manually
+configuring and launching the necessary infrastructure. Which of the following
+should they use?
+A. AWS Lambda
+B. AWS Elastic Beanstalk
+C. Amazon EC2 Auto Scaling
+D. Amazon Route 53
+

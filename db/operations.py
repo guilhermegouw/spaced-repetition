@@ -102,6 +102,424 @@ def get_all_questions():
         raise
 
 
+def update_question(question_id, new_question=None, new_tags=None):
+    """
+    Updates an existing question with new content.
+    :param question_id: The ID of the question to update.
+    :param new_question: New text for the question (optional).
+    :param new_tags: New tags for the question (optional).
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        fields_to_update = []
+        params = []
+        if new_question is not None:
+            fields_to_update.append("question = ?")
+            params.append(new_question)
+        if new_tags is not None:
+            fields_to_update.append("tags = ?")
+            params.append(new_tags)
+        if not fields_to_update:
+            return  # Nothing to update
+        query = f"UPDATE questions SET {', '.join(fields_to_update)} WHERE id = ?"
+        params.append(question_id)
+        cursor.execute(query, params)
+        if cursor.rowcount == 0:
+            raise ValueError(f"No question found with ID {question_id}.")
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error updating question: {e}")
+        raise
+
+
+def mark_reviewed(question_id, rating):
+    """
+    Marks a question as reviewed and updates SM-2 values.
+
+    :param question_id: The ID of the question to update.
+    :param rating: User's performance rating (0-3).
+    """
+    if rating < 0 or rating > 3:
+        raise ValueError(
+            "Rating must be between 0 (forgot) and 3 (easy recall)."
+        )
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT interval, ease_factor FROM questions WHERE id = ?",
+            (question_id,),
+        )
+        result = cursor.fetchone()
+
+        if not result:
+            raise ValueError(f"No question found with ID {question_id}.")
+
+        current_interval, current_ease_factor = result
+
+        # Update SM-2 values based on rating
+        if rating == 0:
+            new_interval = 1
+            new_ease_factor = max(1.3, current_ease_factor - 0.2)
+        else:
+            new_ease_factor = current_ease_factor + (
+                0.1 - (3 - rating) * (0.08 + (3 - rating) * 0.02)
+            )
+            new_interval = max(1, round(current_interval * new_ease_factor))
+
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        update_query = """
+        UPDATE questions
+        SET last_reviewed = ?, interval = ?, ease_factor = ?
+        WHERE id = ?;
+        """
+        cursor.execute(
+            update_query,
+            (today, new_interval, round(new_ease_factor, 2), question_id),
+        )
+        conn.commit()
+        print(
+            f"Question ID {question_id} updated. Last reviewed: {today}, New interval: {new_interval}, New ease factor: {round(new_ease_factor, 2)}"
+        )
+        conn.close()
+    except Exception as e:
+        print(f"Error in mark_reviewed: {e}")
+        raise
+
+
+def delete_question(question_id):
+    """
+    Deletes a question from the database.
+    :param question_id: The ID of the question to delete.
+    :return: True if the question was deleted, False otherwise.
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM questions WHERE id = ?", (question_id,))
+        if not cursor.fetchone():
+            raise ValueError(f"No question found with ID {question_id}.")
+        query = "DELETE FROM questions WHERE id = ?"
+        cursor.execute(query, (question_id,))
+        if cursor.rowcount == 0:
+            return False
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error deleting question: {e}")
+        raise
+
+
+def add_mcq_question(question, question_type, option_a, option_b, correct_option, option_c=None, option_d=None, tags=None):
+    """
+    Adds a new multiple choice question to the database.
+
+    :param question: The text of the question.
+    :param question_type: Type of question ('mcq' or 'true_false').
+    :param option_a: First option text.
+    :param option_b: Second option text.
+    :param option_c: Third option text (required for 'mcq', should be None for 'true_false').
+    :param option_d: Fourth option text (required for 'mcq', should be None for 'true_false').
+    :param correct_option: The correct option ('a', 'b', 'c', or 'd').
+    :param tags: Optional comma-separated tags for categorization.
+    """
+    if question_type == 'true_false':
+        if option_c is not None or option_d is not None:
+            raise ValueError("True/False questions should only have option_a and option_b.")
+        if correct_option not in ['a', 'b']:
+            raise ValueError("For True/False questions, correct_option must be 'a' or 'b'.")
+    elif question_type == 'mcq':
+        if option_c is None or option_d is None:
+            raise ValueError("MCQ questions require all four options (a, b, c, d).")
+        if correct_option not in ['a', 'b', 'c', 'd']:
+            raise ValueError("For MCQ questions, correct_option must be 'a', 'b', 'c', or 'd'.")
+    else:
+        raise ValueError("question_type must be either 'mcq' or 'true_false'.")
+
+    insert_query = """
+    INSERT INTO mcq_questions (
+        question, question_type, option_a, option_b, option_c, option_d, 
+        correct_option, tags, last_reviewed, interval, ease_factor
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, DATE('now'), 1, 2.5);
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(insert_query, (
+            question, question_type, option_a, option_b, option_c, option_d, 
+            correct_option, tags
+        ))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error adding MCQ question: {e}")
+        raise
+
+
+def get_all_mcq_questions():
+    """
+    Retrieves all MCQ questions from the database, regardless of review status.
+    Returns essential information for listing/management purposes.
+
+    :return: List of all MCQ questions with essential fields.
+    """
+    query = """
+    SELECT id, question, question_type, tags, last_reviewed, interval, ease_factor
+    FROM mcq_questions;
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query)
+        results = cursor.fetchall()
+        conn.close()
+        all_mcq_questions = [
+            {
+                "id": row[0],
+                "question": row[1],
+                "question_type": row[2],
+                "tags": row[3],
+                "last_reviewed": row[4],
+                "interval": row[5],
+                "ease_factor": row[6],
+            }
+            for row in results
+        ]
+        return all_mcq_questions
+    except sqlite3.Error as e:
+        print(f"Error retrieving all MCQ questions: {e}")
+        raise
+
+
+def get_due_mcq_questions():
+    """
+    Retrieves all MCQ questions ordered by days overdue.
+    MCQ questions are due if:
+    - days_overdue > 0 (overdue questions).
+    
+    :return: List of due MCQ questions with all fields needed for review.
+    """
+    query = """
+    SELECT id, question, question_type, option_a, option_b, option_c, option_d, 
+           correct_option, tags, last_reviewed, interval, ease_factor,
+           julianday('now') - julianday(DATE(last_reviewed, '+' || interval || ' days')) AS days_overdue
+    FROM mcq_questions
+    WHERE julianday('now') - julianday(DATE(last_reviewed, '+' || interval || ' days')) > 0
+    ORDER BY days_overdue DESC;
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        conn.close()
+
+        due_mcq_questions = [
+            {
+                "id": row[0],
+                "question": row[1],
+                "question_type": row[2],
+                "option_a": row[3],
+                "option_b": row[4],
+                "option_c": row[5],
+                "option_d": row[6],
+                "correct_option": row[7],
+                "tags": row[8],
+                "last_reviewed": row[9],
+                "interval": row[10],
+                "ease_factor": row[11],
+                "days_overdue": row[12],
+            }
+            for row in results
+        ]
+
+        return due_mcq_questions
+    except sqlite3.Error as e:
+        print(f"Error retrieving due MCQ questions: {e}")
+        raise
+
+
+def get_mcq_question_by_id(question_id):
+    """
+    Retrieves a single MCQ question with all options for review.
+    Used when user selects a specific question to answer.
+    
+    :param question_id: The ID of the MCQ question to retrieve.
+    :return: Dictionary with complete question data, or None if not found.
+    """
+    query = """
+    SELECT id, question, question_type, option_a, option_b, option_c, option_d, 
+           correct_option, tags, last_reviewed, interval, ease_factor
+    FROM mcq_questions
+    WHERE id = ?;
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, (question_id,))
+        result = cursor.fetchone()
+        conn.close()
+
+        if not result:
+            return None
+
+        mcq_question = {
+            "id": result[0],
+            "question": result[1],
+            "question_type": result[2],
+            "option_a": result[3],
+            "option_b": result[4],
+            "option_c": result[5],
+            "option_d": result[6],
+            "correct_option": result[7],
+            "tags": result[8],
+            "last_reviewed": result[9],
+            "interval": result[10],
+            "ease_factor": result[11],
+        }
+        return mcq_question
+    except sqlite3.Error as e:
+        print(f"Error retrieving MCQ question with ID {question_id}: {e}")
+        raise
+
+
+def update_mcq_question(mcq_id, new_question=None, new_tags=None):
+    """
+    Updates an existing MCQ question with new content.
+    
+    :param mcq_id: The ID of the MCQ question to update.
+    :param new_question: New text for the question (optional).
+    :param new_tags: New tags for the question (optional).
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        fields_to_update = []
+        params = []
+        if new_question is not None:
+            fields_to_update.append("question = ?")
+            params.append(new_question)
+        if new_tags is not None:
+            fields_to_update.append("tags = ?")
+            params.append(new_tags)
+        if not fields_to_update:
+            return
+        query = f"UPDATE mcq_questions SET {', '.join(fields_to_update)} WHERE id = ?"
+        params.append(mcq_id)
+        cursor.execute(query, params)
+        if cursor.rowcount == 0:
+            raise ValueError(f"No MCQ question found with ID {mcq_id}.")
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error updating MCQ question: {e}")
+        raise
+
+
+def mark_reviewed_mcq(mcq_id, is_correct, confidence_level):
+    """
+    Marks an MCQ question as reviewed and updates SM-2 values with penalty system.
+    
+    :param mcq_id: The ID of the MCQ question to update.
+    :param is_correct: Boolean indicating if the answer was correct.
+    :param confidence_level: String indicating confidence ('low', 'medium', 'high').
+    """
+    # Validate confidence level
+    if confidence_level not in ['low', 'medium', 'high']:
+        raise ValueError("confidence_level must be 'low', 'medium', or 'high'.")
+    
+    # Convert correctness + confidence to SM-2 rating
+    if is_correct:
+        if confidence_level == 'high':
+            sm2_rating = 3
+        elif confidence_level == 'medium':
+            sm2_rating = 2
+        else:  # low confidence
+            sm2_rating = 1
+    else:
+        sm2_rating = 0  # Always 0 for incorrect answers
+    
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Fetch current interval and ease factor
+        cursor.execute(
+            "SELECT interval, ease_factor FROM mcq_questions WHERE id = ?",
+            (mcq_id,),
+        )
+        result = cursor.fetchone()
+
+        if not result:
+            raise ValueError(f"No MCQ question found with ID {mcq_id}.")
+
+        current_interval, current_ease_factor = result
+
+        # Calculate new SM-2 values with penalty system
+        if sm2_rating == 0:
+            # Incorrect answer
+            new_interval = 1
+            base_penalty = 0.2
+            
+            # Apply enhanced penalty for high confidence wrong answers (misconceptions)
+            if confidence_level == 'high':
+                penalty = base_penalty * 1.5  # Enhanced penalty for misconceptions
+                print(f"Applying misconception penalty: -{penalty}")
+            else:
+                penalty = base_penalty
+            
+            new_ease_factor = max(1.3, current_ease_factor - penalty)
+        else:
+            # Correct answer
+            if confidence_level == 'low':
+                # Reduced positive adjustment for uncertain correct answers
+                ease_adjustment = 0.05
+            elif confidence_level == 'medium':
+                ease_adjustment = 0.1
+            else:  # high confidence
+                # Standard SM-2 calculation for confident correct answers
+                ease_adjustment = 0.1 - (3 - sm2_rating) * (0.08 + (3 - sm2_rating) * 0.02)
+            
+            new_ease_factor = current_ease_factor + ease_adjustment
+            new_interval = max(1, round(current_interval * new_ease_factor))
+
+        # Update the database
+        today = datetime.now().strftime("%Y-%m-%d")
+        update_query = """
+        UPDATE mcq_questions
+        SET last_reviewed = ?, interval = ?, ease_factor = ?
+        WHERE id = ?;
+        """
+        cursor.execute(
+            update_query,
+            (today, new_interval, round(new_ease_factor, 2), mcq_id),
+        )
+        conn.commit()
+        
+        # Provide feedback about the update
+        status = "correct" if is_correct else "incorrect"
+        print(
+            f"MCQ ID {mcq_id} updated ({status}, {confidence_level} confidence). "
+            f"Last reviewed: {today}, New interval: {new_interval}, "
+            f"New ease factor: {round(new_ease_factor, 2)}"
+        )
+        conn.close()
+    except Exception as e:
+        print(f"Error in mark_reviewed_mcq: {e}")
+        raise
+
+
 def add_challenge(title, description, language, testcases=None):
     """
     Adds a new coding challenge to the database.
@@ -211,64 +629,6 @@ def get_due_challenges():
         raise
 
 
-def mark_reviewed(question_id, rating):
-    """
-    Marks a question as reviewed and updates SM-2 values.
-
-    :param question_id: The ID of the question to update.
-    :param rating: User's performance rating (0-3).
-    """
-    if rating < 0 or rating > 3:
-        raise ValueError(
-            "Rating must be between 0 (forgot) and 3 (easy recall)."
-        )
-
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "SELECT interval, ease_factor FROM questions WHERE id = ?",
-            (question_id,),
-        )
-        result = cursor.fetchone()
-
-        if not result:
-            raise ValueError(f"No question found with ID {question_id}.")
-
-        current_interval, current_ease_factor = result
-
-        # Update SM-2 values based on rating
-        if rating == 0:
-            new_interval = 1
-            new_ease_factor = max(1.3, current_ease_factor - 0.2)
-        else:
-            new_ease_factor = current_ease_factor + (
-                0.1 - (3 - rating) * (0.08 + (3 - rating) * 0.02)
-            )
-            new_interval = max(1, round(current_interval * new_ease_factor))
-
-        today = datetime.now().strftime("%Y-%m-%d")
-
-        update_query = """
-        UPDATE questions
-        SET last_reviewed = ?, interval = ?, ease_factor = ?
-        WHERE id = ?;
-        """
-        cursor.execute(
-            update_query,
-            (today, new_interval, round(new_ease_factor, 2), question_id),
-        )
-        conn.commit()
-        print(
-            f"Question ID {question_id} updated. Last reviewed: {today}, New interval: {new_interval}, New ease factor: {round(new_ease_factor, 2)}"
-        )
-        conn.close()
-    except Exception as e:
-        print(f"Error in mark_reviewed: {e}")
-        raise
-
-
 def mark_reviewed_challenge(challenge_id, rating):
     """
     Marks a challenge as reviewed and updates SM-2 values.
@@ -297,7 +657,6 @@ def mark_reviewed_challenge(challenge_id, rating):
 
         current_interval, current_ease_factor = result
 
-        # Update SM-2 values based on rating
         if rating == 0:
             new_interval = 1
             new_ease_factor = max(1.3, current_ease_factor - 0.2)
@@ -307,12 +666,10 @@ def mark_reviewed_challenge(challenge_id, rating):
             )
             new_interval = max(1, round(current_interval * new_ease_factor))
 
-        # Debugging: Log values
         print(f"Current Interval: {current_interval}")
         print(f"New Interval: {new_interval}")
         print(f"New Ease Factor: {round(new_ease_factor, 2)}")
 
-        # Update the database
         today = datetime.now().strftime("%Y-%m-%d")
         update_query = """
         UPDATE challenges
@@ -405,38 +762,6 @@ def update_challenge_testcases(challenge_id, testcases):
         raise
 
 
-def update_question(question_id, new_question=None, new_tags=None):
-    """
-    Updates an existing question with new content.
-    :param question_id: The ID of the question to update.
-    :param new_question: New text for the question (optional).
-    :param new_tags: New tags for the question (optional).
-    """
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        fields_to_update = []
-        params = []
-        if new_question is not None:
-            fields_to_update.append("question = ?")
-            params.append(new_question)
-        if new_tags is not None:
-            fields_to_update.append("tags = ?")
-            params.append(new_tags)
-        if not fields_to_update:
-            return  # Nothing to update
-        query = f"UPDATE questions SET {', '.join(fields_to_update)} WHERE id = ?"
-        params.append(question_id)
-        cursor.execute(query, params)
-        if cursor.rowcount == 0:
-            raise ValueError(f"No question found with ID {question_id}.")
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"Error updating question: {e}")
-        raise
-
 def update_challenge(challenge_id, new_title=None, new_description=None, new_language=None, new_testcases=None):
     """
     Updates an existing challenge with new content.
@@ -475,30 +800,6 @@ def update_challenge(challenge_id, new_title=None, new_description=None, new_lan
         return True
     except Exception as e:
         print(f"Error updating challenge: {e}")
-        raise
-
-
-def delete_question(question_id):
-    """
-    Deletes a question from the database.
-    :param question_id: The ID of the question to delete.
-    :return: True if the question was deleted, False otherwise.
-    """
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM questions WHERE id = ?", (question_id,))
-        if not cursor.fetchone():
-            raise ValueError(f"No question found with ID {question_id}.")
-        query = "DELETE FROM questions WHERE id = ?"
-        cursor.execute(query, (question_id,))
-        if cursor.rowcount == 0:
-            return False
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"Error deleting question: {e}")
         raise
 
 
