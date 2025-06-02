@@ -40,7 +40,19 @@ def add_new_mcq_question(console):
             console.print("[bold yellow]No correct option selected.[/bold yellow]")
             return
 
-        correct_option = correct_option[0]  # Extract 'a' or 'b'
+        correct_option = correct_option[0]
+
+        console.print("\n[bold cyan]Now let's add explanations for each option:[/bold cyan]")
+        
+        if correct_option == 'a':
+            explanation_a = questionary.text("Explain why 'True' is correct:").ask()
+            explanation_b = questionary.text("Explain why 'False' is incorrect:").ask()
+        else:
+            explanation_a = questionary.text("Explain why 'True' is incorrect:").ask()
+            explanation_b = questionary.text("Explain why 'False' is correct:").ask()
+        
+        explanation_c = None
+        explanation_d = None
 
     else:
         option_a = questionary.text("Enter option A:").ask()
@@ -72,6 +84,24 @@ def add_new_mcq_question(console):
 
         correct_option = correct_choice[0]
 
+        console.print("\n[bold cyan]Now let's add explanations for each option:[/bold cyan]")
+        
+        explanation_a = questionary.text(
+            f"Explain option A ({option_a}) - {'CORRECT' if correct_option == 'a' else 'Why it is wrong'}:"
+        ).ask()
+        
+        explanation_b = questionary.text(
+            f"Explain option B ({option_b}) - {'CORRECT' if correct_option == 'b' else 'Why it is wrong'}:"
+        ).ask()
+        
+        explanation_c = questionary.text(
+            f"Explain option C ({option_c}) - {'CORRECT' if correct_option == 'c' else 'Why it is wrong'}:"
+        ).ask()
+        
+        explanation_d = questionary.text(
+            f"Explain option D ({option_d}) - {'CORRECT' if correct_option == 'd' else 'Why it is wrong'}:"
+        ).ask()
+
     tags = questionary.text("Enter tags (comma-separated, optional):").ask()
     if not tags:
         tags = None
@@ -85,7 +115,11 @@ def add_new_mcq_question(console):
             option_c=option_c,
             option_d=option_d,
             correct_option=correct_option,
-            tags=tags
+            tags=tags,
+            explanation_a=explanation_a,
+            explanation_b=explanation_b,
+            explanation_c=explanation_c,
+            explanation_d=explanation_d
         )
         console.print("[bold green]MCQ question added successfully![/bold green]")
         console.print(f"[bold cyan]Question:[/bold cyan] {question}")
@@ -161,6 +195,22 @@ def update_existing_mcq_question(console):
             console.print(f"[bold red]Error updating MCQ question: {e}[/bold red]")
     else:
         console.print("[bold yellow]No changes made.[/bold yellow]")
+
+
+def display_explanation(console, option_letter, option_text, explanation, is_correct, is_user_choice):
+    """
+    Helper function to display explanations with appropriate formatting.
+    """
+    if is_user_choice:
+        if is_correct:
+            console.print(f"\n[bold green]✓ Your choice: {option_letter.upper()}) {option_text}[/bold green]")
+            console.print(f"[bold green]Why this is correct:[/bold green] {explanation}")
+        else:
+            console.print(f"\n[bold red]✗ Your choice: {option_letter.upper()}) {option_text}[/bold red]")
+            console.print(f"[bold red]Why this is wrong:[/bold red] {explanation}")
+    elif is_correct and not is_user_choice:
+        console.print(f"\n[bold cyan]✓ Correct answer: {option_letter.upper()}) {option_text}[/bold cyan]")
+        console.print(f"[bold cyan]Why this is correct:[/bold cyan] {explanation}")
 
 
 def review_mcq_questions(console):
@@ -247,13 +297,37 @@ def review_mcq_questions(console):
 
     # Step 5: Show feedback and update SM-2
     is_correct = (user_answer_original == question_data['correct_option'])
-    console.print(f"\n[bold cyan]Results:[/bold cyan]")
-    if is_correct:
-        console.print("[bold green]✓ Correct![/bold green]")
-    else:
-        console.print("[bold red]✗ Incorrect[/bold red]")
-        console.print(f"[bold cyan]The correct answer was:[/bold cyan] {question_data['correct_option'].upper()}) {question_data[f'option_{question_data['correct_option']}']}")
-    console.print(f"[bold cyan]Your confidence:[/bold cyan] {confidence}")
+    console.print(f"\n[bold cyan]=== FEEDBACK ===[/bold cyan]")
+    
+    user_option_text = question_data[f'option_{user_answer_original}']
+    user_explanation = question_data[f'explanation_{user_answer_original}']
+    
+    if user_explanation:
+        display_explanation(
+            console, 
+            user_answer_original, 
+            user_option_text, 
+            user_explanation, 
+            is_correct, 
+            True
+        )
+    
+    if not is_correct:
+        correct_option_text = question_data[f'option_{question_data["correct_option"]}']
+        correct_explanation = question_data[f'explanation_{question_data["correct_option"]}']
+        
+        if correct_explanation:
+            display_explanation(
+                console,
+                question_data['correct_option'],
+                correct_option_text,
+                correct_explanation,
+                True,
+                False
+            )
+    
+    console.print(f"\n[bold cyan]Your confidence:[/bold cyan] {confidence}")
+    
     # Apply penalty system and update SM-2
     try:
         mark_reviewed_mcq(selected_id, is_correct, confidence)
@@ -265,6 +339,7 @@ def review_mcq_questions(console):
             console.print("[bold blue]ℹ️  Correct but uncertain - will progress conservatively to build confidence.[/bold blue]")
     except Exception as e:
         console.print(f"[bold red]Error updating question: {e}[/bold red]")
+    
     another = questionary.confirm("Review another MCQ question?").ask()
     if another:
         review_mcq_questions(console)

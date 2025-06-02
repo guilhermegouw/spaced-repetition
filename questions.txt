@@ -1,9 +1,124 @@
-Your developers want to run a fully provisioned EC2 instances to support their
-application code deployments but prefer not to have to worry about manually
-configuring and launching the necessary infrastructure. Which of the following
-should they use?
-A. AWS Lambda
-B. AWS Elastic Beanstalk
-C. Amazon EC2 Auto Scaling
-D. Amazon Route 53
+TEMPLATE
 
+Question:
+
+Options:
+
+Correct answer:
+
+Explanations:
+
+Incorrect answers:
+
+Question:
+Which of the following is typically used to sign API (CLI or SDK)
+calls to AWS services?
+
+Options:
+A. AWS KMS Key
+B. AWS access key
+C. IAM username and password
+D. Account number
+
+Correct answer:
+B
+
+Explanations:
+B: The specific credentials include the access key ID and secret access
+key. If the access key is valid only for a short-term session, the
+credentials also include a session token.
+AWS uses the username and passwords for working with the AWS
+Management Console, not for working with the APIs. Data encryption
+uses the AWS KMS key, not API access.
+
+Incorrect answers:
+A: KMS keys are used for encryption and decryption operations
+(e.g., encrypting data in S3 or secrets). They are not used for signing API
+requests or authenticating to AWS services.
+You can't use a KMS key to make a call to an AWS API via CLI or SDK.
+
+C: IAM usernames and passwords are used only to sign in to the AWS Management
+Console (the web UI). They are not used for CLI or SDK access.
+For programmatic access, AWS requires the use of access key credentials.
+
+D: The AWS account number is simply an identifier for the AWS account.
+It’s not a form of credential and cannot be used to sign requests or access
+services via CLI or SDK.
+
+
+Question:
+When you make calls to AWS services, for most services those
+requests are directed at a specific endpoint that corresponds to which
+of the following?
+
+Options:
+A. AWS facility
+B. AWS availability zone
+C. AWS region
+D. AWS edge location
+
+Correct answer: C
+
+Explanations:
+C (Correct): Most AWS API services are regional in scope.
+The service is running and replicating your data across multiple availability
+zones within an AWS region. You specify the region either in your default
+configuration or by explicitly setting a location for your API client.
+
+Incorrect answers:
+A: "AWS facility" is a vague term and not a formal concept in AWS architecture.
+It might refer to a physical data center, but API endpoints are not targeted at
+individual data centers—they’re aimed at regional endpoints, which abstract away
+the physical infrastructure.
+
+B: Availability Zones (AZs) are subdivisions within regions, used to achieve
+fault isolation and high availability. However, API requests are not scoped to
+a specific AZ, but to the overall region, which may then replicate across 
+multiple AZs internally.
+
+D: Edge locations are part of Amazon CloudFront and the AWS global content
+delivery network (CDN).
+They are used to cache and serve content closer to users, not to receive
+general API requests for most AWS services.
+
+
+
+Question:
+When you’re configuring a local development machine to make AWS
+calls, which of the following is the simplest secure method of
+obtaining and using credentials?
+
+Options:
+A. Create an IAM user, assign permissions by adding the user to an
+IAM group with IAM policies attached, and generate an access
+key for programmatic access.
+B. Sign in with your email and password, and visit My Security
+Credentials to generate an access key.
+C. Generate long-term credentials for a built-in IAM role.
+D. Use your existing username and password by configuring local
+environment variables.
+
+Correct answer: A
+
+Explanations:
+correct answer: The AWS SDK relies on access keys, not passwords. The best
+practice is to use AWS Identity and Access Management (IAM)
+credentials and not the AWS account credentials. Comparing IAM
+users or IAM roles, only IAM users can have long-term security
+credentials.
+
+Incorrect answers:
+B: This refers to the root account, which should never be used for day-to-day
+operations or programmatic access. It's a security risk.
+Always create IAM users for development tasks.
+
+C: IAM roles do not support long-term credentials. They provide temporary,
+short-term credentials, typically used within AWS compute services
+(like EC2 or Lambda), not on local machines. You assume a role; you don’t
+“generate” credentials for it directly.
+
+D: The AWS CLI/SDK does not support username and password authentication.
+It requires access key ID and secret access key, optionally with a session
+token if using temporary credentials.
+Also, storing plaintext credentials (even if supported) in environment
+variables without secure handling would be a bad practice.

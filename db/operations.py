@@ -217,7 +217,7 @@ def delete_question(question_id):
         raise
 
 
-def add_mcq_question(question, question_type, option_a, option_b, correct_option, option_c=None, option_d=None, tags=None):
+def add_mcq_question(question, question_type, option_a, option_b, correct_option, option_c=None, option_d=None, tags=None, explanation_a=None, explanation_b=None, explanation_c=None, explanation_d=None):
     """
     Adds a new multiple choice question to the database.
 
@@ -229,6 +229,10 @@ def add_mcq_question(question, question_type, option_a, option_b, correct_option
     :param option_d: Fourth option text (required for 'mcq', should be None for 'true_false').
     :param correct_option: The correct option ('a', 'b', 'c', or 'd').
     :param tags: Optional comma-separated tags for categorization.
+    :param explanation_a: Explanation for option A.
+    :param explanation_b: Explanation for option B.
+    :param explanation_c: Explanation for option C.
+    :param explanation_d: Explanation for option D.
     """
     if question_type == 'true_false':
         if option_c is not None or option_d is not None:
@@ -246,16 +250,17 @@ def add_mcq_question(question, question_type, option_a, option_b, correct_option
     insert_query = """
     INSERT INTO mcq_questions (
         question, question_type, option_a, option_b, option_c, option_d, 
-        correct_option, tags, last_reviewed, interval, ease_factor
+        correct_option, explanation_a, explanation_b, explanation_c, explanation_d,
+        tags, last_reviewed, interval, ease_factor
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, DATE('now'), 1, 2.5);
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATE('now'), 1, 2.5);
     """
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(insert_query, (
             question, question_type, option_a, option_b, option_c, option_d, 
-            correct_option, tags
+            correct_option, explanation_a, explanation_b, explanation_c, explanation_d, tags
         ))
         conn.commit()
         conn.close()
@@ -309,7 +314,8 @@ def get_due_mcq_questions():
     """
     query = """
     SELECT id, question, question_type, option_a, option_b, option_c, option_d, 
-           correct_option, tags, last_reviewed, interval, ease_factor,
+           correct_option, explanation_a, explanation_b, explanation_c, explanation_d,
+           tags, last_reviewed, interval, ease_factor,
            julianday('now') - julianday(DATE(last_reviewed, '+' || interval || ' days')) AS days_overdue
     FROM mcq_questions
     WHERE julianday('now') - julianday(DATE(last_reviewed, '+' || interval || ' days')) > 0
@@ -334,11 +340,15 @@ def get_due_mcq_questions():
                 "option_c": row[5],
                 "option_d": row[6],
                 "correct_option": row[7],
-                "tags": row[8],
-                "last_reviewed": row[9],
-                "interval": row[10],
-                "ease_factor": row[11],
-                "days_overdue": row[12],
+                "explanation_a": row[8],
+                "explanation_b": row[9],
+                "explanation_c": row[10],
+                "explanation_d": row[11],
+                "tags": row[12],
+                "last_reviewed": row[13],
+                "interval": row[14],
+                "ease_factor": row[15],
+                "days_overdue": row[16],
             }
             for row in results
         ]
@@ -359,7 +369,8 @@ def get_mcq_question_by_id(question_id):
     """
     query = """
     SELECT id, question, question_type, option_a, option_b, option_c, option_d, 
-           correct_option, tags, last_reviewed, interval, ease_factor
+           correct_option, explanation_a, explanation_b, explanation_c, explanation_d,
+           tags, last_reviewed, interval, ease_factor
     FROM mcq_questions
     WHERE id = ?;
     """
@@ -382,10 +393,14 @@ def get_mcq_question_by_id(question_id):
             "option_c": result[5],
             "option_d": result[6],
             "correct_option": result[7],
-            "tags": result[8],
-            "last_reviewed": result[9],
-            "interval": result[10],
-            "ease_factor": result[11],
+            "explanation_a": result[8],
+            "explanation_b": result[9],
+            "explanation_c": result[10],
+            "explanation_d": result[11],
+            "tags": result[12],
+            "last_reviewed": result[13],
+            "interval": result[14],
+            "ease_factor": result[15],
         }
         return mcq_question
     except sqlite3.Error as e:
@@ -435,11 +450,9 @@ def mark_reviewed_mcq(mcq_id, is_correct, confidence_level):
     :param is_correct: Boolean indicating if the answer was correct.
     :param confidence_level: String indicating confidence ('low', 'medium', 'high').
     """
-    # Validate confidence level
     if confidence_level not in ['low', 'medium', 'high']:
         raise ValueError("confidence_level must be 'low', 'medium', or 'high'.")
     
-    # Convert correctness + confidence to SM-2 rating
     if is_correct:
         if confidence_level == 'high':
             sm2_rating = 3
@@ -448,13 +461,12 @@ def mark_reviewed_mcq(mcq_id, is_correct, confidence_level):
         else:  # low confidence
             sm2_rating = 1
     else:
-        sm2_rating = 0  # Always 0 for incorrect answers
+        sm2_rating = 0
     
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Fetch current interval and ease factor
         cursor.execute(
             "SELECT interval, ease_factor FROM mcq_questions WHERE id = ?",
             (mcq_id,),
@@ -466,35 +478,28 @@ def mark_reviewed_mcq(mcq_id, is_correct, confidence_level):
 
         current_interval, current_ease_factor = result
 
-        # Calculate new SM-2 values with penalty system
         if sm2_rating == 0:
-            # Incorrect answer
             new_interval = 1
             base_penalty = 0.2
             
-            # Apply enhanced penalty for high confidence wrong answers (misconceptions)
             if confidence_level == 'high':
-                penalty = base_penalty * 1.5  # Enhanced penalty for misconceptions
+                penalty = base_penalty * 1.5
                 print(f"Applying misconception penalty: -{penalty}")
             else:
                 penalty = base_penalty
             
             new_ease_factor = max(1.3, current_ease_factor - penalty)
         else:
-            # Correct answer
             if confidence_level == 'low':
-                # Reduced positive adjustment for uncertain correct answers
                 ease_adjustment = 0.05
             elif confidence_level == 'medium':
                 ease_adjustment = 0.1
             else:  # high confidence
-                # Standard SM-2 calculation for confident correct answers
                 ease_adjustment = 0.1 - (3 - sm2_rating) * (0.08 + (3 - sm2_rating) * 0.02)
             
             new_ease_factor = current_ease_factor + ease_adjustment
             new_interval = max(1, round(current_interval * new_ease_factor))
 
-        # Update the database
         today = datetime.now().strftime("%Y-%m-%d")
         update_query = """
         UPDATE mcq_questions
@@ -506,8 +511,6 @@ def mark_reviewed_mcq(mcq_id, is_correct, confidence_level):
             (today, new_interval, round(new_ease_factor, 2), mcq_id),
         )
         conn.commit()
-        
-        # Provide feedback about the update
         status = "correct" if is_correct else "incorrect"
         print(
             f"MCQ ID {mcq_id} updated ({status}, {confidence_level} confidence). "

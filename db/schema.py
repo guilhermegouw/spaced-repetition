@@ -40,11 +40,28 @@ def initialize_db():
         option_c TEXT,
         option_d TEXT,
         correct_option TEXT CHECK(correct_option IN ('a', 'b', 'c', 'd')) NOT NULL,
+        explanation_a TEXT,
+        explanation_b TEXT,
+        explanation_c TEXT,
+        explanation_d TEXT,
         tags TEXT,
         last_reviewed DATE,
         interval INTEGER DEFAULT 1,
         ease_factor REAL DEFAULT 2.5
     );
+    """
+
+    add_explanation_columns_query = """
+    ALTER TABLE mcq_questions ADD COLUMN explanation_a TEXT;
+    """
+    add_explanation_columns_query_b = """
+    ALTER TABLE mcq_questions ADD COLUMN explanation_b TEXT;
+    """
+    add_explanation_columns_query_c = """
+    ALTER TABLE mcq_questions ADD COLUMN explanation_c TEXT;
+    """
+    add_explanation_columns_query_d = """
+    ALTER TABLE mcq_questions ADD COLUMN explanation_d TEXT;
     """
 
     try:
@@ -53,6 +70,15 @@ def initialize_db():
         cursor.execute(create_questions_table_query)
         cursor.execute(create_challenges_table_query)
         cursor.execute(create_mcq_questions_table_query)
+
+        try:
+            cursor.execute(add_explanation_columns_query)
+            cursor.execute(add_explanation_columns_query_b)
+            cursor.execute(add_explanation_columns_query_c)
+            cursor.execute(add_explanation_columns_query_d)
+            print("Added explanation columns to existing mcq_questions table")
+        except Exception:
+            pass
 
         conn.commit()
         conn.close()
