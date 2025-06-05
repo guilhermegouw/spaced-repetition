@@ -1,5 +1,3 @@
-TEMPLATE
-
 Question:
 
 Options:
@@ -8,117 +6,148 @@ Correct answer:
 
 Explanations:
 
-Incorrect answers:
 
-Question:
-Which of the following is typically used to sign API (CLI or SDK)
-calls to AWS services?
+Question 1:
+Your developers want to run fully provisioned EC2 instances to support their application
+code deployments but prefer not to have to worry about manually configuring and launching
+the necessary infrastructure. Which of the following should they use?
 
 Options:
-A. AWS KMS Key
-B. AWS access key
-C. IAM username and password
-D. Account number
+A.AWS Lambda
+B.AWS Elastic Beanstalk
+C.Amazon EC2 Auto Scaling
+D.Amazon Route 53
 
 Correct answer:
-B
+B. 
 
 Explanations:
-B: The specific credentials include the access key ID and secret access
-key. If the access key is valid only for a short-term session, the
-credentials also include a session token.
-AWS uses the username and passwords for working with the AWS
-Management Console, not for working with the APIs. Data encryption
-uses the AWS KMS key, not API access.
+A: AWS Lambda - WRONG because:
+Lambda is a serverless compute service that runs code in response to events
+without provisioning or managing servers.
+The question specifically asks for "fully provisioned EC2 instances," but
+Lambda doesn't use EC2 instances at all.
+Lambda functions run for a maximum of 15 minutes and are event-driven, which
+doesn't match the requirement for persistent EC2 instances to support
+application deployments.
 
-Incorrect answers:
-A: KMS keys are used for encryption and decryption operations
-(e.g., encrypting data in S3 or secrets). They are not used for signing API
-requests or authenticating to AWS services.
-You can't use a KMS key to make a call to an AWS API via CLI or SDK.
+B: Elastic Beanstalk takes care of the ongoing underlying deployment details
+for you, allowing you to focus exclusively on your code.
+Lambda will respond to trigger events by running code a single time, Auto
+Scaling will ramp up existing infrastructure in response to demand, and Route53
+manages DNS and network routing.
 
-C: IAM usernames and passwords are used only to sign in to the AWS Management
-Console (the web UI). They are not used for CLI or SDK access.
-For programmatic access, AWS requires the use of access key credentials.
+C: Amazon EC2 Auto Scaling - WRONG because:
+Auto Scaling is used to automatically adjust the number of EC2 instances based
+on demand, but it doesn't handle the initial configuration and launching of the
+infrastructure. You still need to manually create launch templates, configure
+security groups, set up load balancers, and define scaling policies.
+Auto Scaling assumes you already have the infrastructure configured - it just
+scales existing setups up or down.
 
-D: The AWS account number is simply an identifier for the AWS account.
-It’s not a form of credential and cannot be used to sign requests or access
-services via CLI or SDK.
+D: Amazon Route 53 - WRONG because:
+Route 53 is AWS's DNS (Domain Name System) service that manages domain
+registration, DNS routing, and health checks.
+It has nothing to do with provisioning or managing EC2 instances or application
+infrastructure. It only handles how users find your application through domain
+name resolution, not how the application infrastructure is deployed or managed.
 
 
-Question:
-When you make calls to AWS services, for most services those
-requests are directed at a specific endpoint that corresponds to which
-of the following?
+Question 2:
+Some of your application’s end users are complaining of delays when accessing your
+resources from remote geographic locations. Which of these services would be the most likely
+to help reduce the delays?
 
 Options:
-A. AWS facility
-B. AWS availability zone
-C. AWS region
-D. AWS edge location
+A.Amazon CloudFront
+B.Amazon Route 53
+C.Elastic Load Balancing
+D.Amazon Glacier
 
-Correct answer: C
+Correct answer:
+A
 
 Explanations:
-C (Correct): Most AWS API services are regional in scope.
-The service is running and replicating your data across multiple availability
-zones within an AWS region. You specify the region either in your default
-configuration or by explicitly setting a location for your API client.
+A: CloudFront maintains a network of endpoints where cached versions of your
+application data are stored to provide quicker responses to user requests.
+Route 53 manages DNS and network routing, Elastic Load Balancing routes 
+incoming user requests among a cluster of available servers, and Glacier
+provides high-­latency, low-­cost file storage.
 
-Incorrect answers:
-A: "AWS facility" is a vague term and not a formal concept in AWS architecture.
-It might refer to a physical data center, but API endpoints are not targeted at
-individual data centers—they’re aimed at regional endpoints, which abstract away
-the physical infrastructure.
+B: WRONG because:
+While Route 53 is a DNS service that can route users to the nearest AWS region
+using latency-based routing, it doesn't actually reduce the physical distance
+data needs to travel or cache content closer to users.
+It only helps direct users to the best endpoint, but once connected, users still
+experience the same geographic delays when downloading content.
+Route 53 provides routing optimization but not content delivery optimization.
 
-B: Availability Zones (AZs) are subdivisions within regions, used to achieve
-fault isolation and high availability. However, API requests are not scoped to
-a specific AZ, but to the overall region, which may then replicate across 
-multiple AZs internally.
+C: Elastic Load Balancing - WRONG because:
+ELB distributes incoming traffic across multiple servers within the same region
+or availability zones to prevent any single server from being overwhelmed.
+However, it doesn't address geographic latency issues.
+All the load balancer targets are typically in the same AWS region, so users
+from remote locations will still experience the same delays reaching that region.
+ELB improves availability and performance within a region, not across geographic
+distances.
 
-D: Edge locations are part of Amazon CloudFront and the AWS global content
-delivery network (CDN).
-They are used to cache and serve content closer to users, not to receive
-general API requests for most AWS services.
+D: Amazon Glacier - WRONG because:
+Glacier is a long-term archival storage service designed for infrequently
+accessed data with retrieval times measured in hours (not milliseconds).
+It's the opposite of what you'd want for reducing user access delays.
+Glacier is optimized for cost, not speed, and would actually increase delays
+significantly since data retrieval can take 1-12 hours depending on the retrieval
+option chosen.
 
 
-
-Question:
-When you’re configuring a local development machine to make AWS
-calls, which of the following is the simplest secure method of
-obtaining and using credentials?
+Question 3:
+Which of the following is the best use-case scenario for Elastic Block Store?
 
 Options:
-A. Create an IAM user, assign permissions by adding the user to an
-IAM group with IAM policies attached, and generate an access
-key for programmatic access.
-B. Sign in with your email and password, and visit My Security
-Credentials to generate an access key.
-C. Generate long-term credentials for a built-in IAM role.
-D. Use your existing username and password by configuring local
-environment variables.
 
-Correct answer: A
+A: You need a cheap and reliable place to store files your application can access.
+B: You need a safe place to store backup archives from your local servers.
+C: You need a source for on-­demand compute cycles to meet fluctuating demand for your
+application.
+D: You need persistent storage for the filesystem run by your EC2 instance.
+
+Correct answer:
+D
 
 Explanations:
-correct answer: The AWS SDK relies on access keys, not passwords. The best
-practice is to use AWS Identity and Access Management (IAM)
-credentials and not the AWS account credentials. Comparing IAM
-users or IAM roles, only IAM users can have long-term security
-credentials.
 
-Incorrect answers:
-B: This refers to the root account, which should never be used for day-to-day
-operations or programmatic access. It's a security risk.
-Always create IAM users for development tasks.
+A: You need a cheap and reliable place to store files your application can
+access - WRONG because:
 
-C: IAM roles do not support long-term credentials. They provide temporary,
-short-term credentials, typically used within AWS compute services
-(like EC2 or Lambda), not on local machines. You assume a role; you don’t
-“generate” credentials for it directly.
+While EBS is reliable, it's not the cheapest storage option for general file
+storage.
+Amazon S3 is much more cost-effective for storing files that applications need
+to access, especially for static content, backups, or infrequently accessed
+data.
+EBS is designed for high-performance, low-latency access as a block storage
+device attached to EC2 instances, which comes at a premium price compared to
+object storage like S3.
 
-D: The AWS CLI/SDK does not support username and password authentication.
-It requires access key ID and secret access key, optionally with a session
-token if using temporary credentials.
-Also, storing plaintext credentials (even if supported) in environment
-variables without secure handling would be a bad practice.
+B: You need a safe place to store backup archives from your local servers
+WRONG because:
+For backup archives, Amazon S3 (especially S3 Glacier or S3 Glacier Deep Archive)
+would be far more appropriate and cost-effective.
+EBS is designed for active, operational storage that needs to be attached to
+running EC2 instances.
+Using EBS for backup archives would be unnecessarily expensive since you're
+paying for high-performance block storage when you only need long-term
+archival storage with infrequent access.
+
+C: You need a source for on-demand compute cycles to meet fluctuating demand
+WRONG because:
+EBS provides storage, not compute power.
+For on-demand compute cycles, you would use services like EC2 instances
+(with Auto Scaling), AWS Lambda for serverless compute, or other compute
+services.
+EBS volumes attach to compute instances to provide them with persistent storage,
+but they don't provide any processing power themselves.
+
+D: -CORRECT- Elastic Block Store provides virtual block devices
+(think: storage drives) on which you can install and run filesystems and data
+operations.
+It is not normally a cost-­effective option for long-­term data storage.
