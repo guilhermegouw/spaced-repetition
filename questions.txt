@@ -6,6 +6,14 @@ Correct answer:
 
 Explanations:
 
+A:
+
+B:
+
+C:
+
+D:
+
 
 Question 1:
 Your developers want to run fully provisioned EC2 instances to support their application
@@ -151,3 +159,55 @@ D: -CORRECT- Elastic Block Store provides virtual block devices
 (think: storage drives) on which you can install and run filesystems and data
 operations.
 It is not normally a cost-­effective option for long-­term data storage.
+################################ ADDED ##################################
+Skip question 4 - 5 options needs to upgrade the MCQ system to acommodate it...
+################################ To Do ###################################
+
+Question 5:
+The data consumed by the application you’re planning will require more speed and flexibility
+than you can get from a closely defined relational database structure. Which AWS database
+service should you choose?
+
+Options:
+A.Relational Database Service (RDS)
+B.Amazon Aurora
+C.Amazon DynamoDB
+D.Key Management Service (KMS)
+
+Correct answer:
+C
+
+Explanations:
+
+A: Relational Database Service (RDS) - WRONG because:
+RDS provides managed relational databases (MySQL, PostgreSQL, Oracle,
+SQL Server, MariaDB) that use rigid, predefined schemas with tables, rows, and
+columns.
+The question specifically states you need "more speed and flexibility than you
+can get from a closely defined relational database structure," so RDS is
+exactly what you're trying to avoid.
+RDS requires you to define your schema upfront and makes schema changes complex
+and time-consuming.
+
+B: Amazon Aurora - WRONG because:
+Aurora is AWS's cloud-native relational database that's compatible with MySQL
+and PostgreSQL.
+While Aurora offers better performance than traditional RDS databases, it's
+still fundamentally a relational database with the same rigid schema
+requirements.
+It doesn't solve the flexibility problem mentioned in the question - you still
+need to define tables, columns, and relationships upfront, and schema changes
+are still complex.
+
+C: DynamoDB provides a NoSQL (nonrelational) database service.
+Both are good for workloads that can be more efficiently run without the
+relational schema of SQL database engines (like those, including Aurora, that
+are offered by RDS).
+KMS is a tool for generating and managing encryption keys.
+
+D: Key Management Service (KMS) - WRONG because:
+KMS is not a database service at all - it's a security service for creating
+and managing encryption keys used to encrypt data across AWS services.
+KMS has nothing to do with storing, retrieving, or managing application data.
+It's purely for cryptographic key management and would not address any database
+performance or flexibility requirements.
