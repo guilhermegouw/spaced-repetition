@@ -1,8 +1,8 @@
 from typing import Optional
 
-from models.mcq_question import MCQQuestion
-from repositories.question import MCQRepository
-from views.question import MCQView
+from src.models.mcq import MCQQuestion
+from src.repositories.mcq import MCQRepository
+from src.views.mcq import MCQView
 
 
 class MCQController:

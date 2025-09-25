@@ -6,7 +6,7 @@ import typer
 from rich.console import Console
 
 from src.controllers.challenge import ChallengeController
-from src.controllers.mcq_question import MCQController
+from src.controllers.mcq import MCQController
 from src.controllers.question import QuestionController
 
 sys.path.append(str(Path(__file__).parent / "src"))

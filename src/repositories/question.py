@@ -1,9 +1,9 @@
 from datetime import date
 from typing import List, Optional
 
-from db.database_manager import DatabaseManager
-from models.question import Question
-from models.sm2 import SM2Calculator
+from src.db.database_manager import DatabaseManager
+from src.models.question import Question
+from src.models.sm2 import SM2Calculator
 
 
 class QuestionRepository:

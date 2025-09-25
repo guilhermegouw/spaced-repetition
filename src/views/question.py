@@ -6,8 +6,8 @@ import pyperclip
 import questionary
 from rich.console import Console
 
-from models.question import Question
-from templates import QUESTION_PROMPT_TEMPLATE
+from src.models.question import Question
+from src.templates import QUESTION_PROMPT_TEMPLATE
 
 
 class QuestionView:

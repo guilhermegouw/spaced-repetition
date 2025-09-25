@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import questionary
 from rich.console import Console
 
-from models.mcq_question import MCQQuestion
+from src.models.mcq import MCQQuestion
 
 
 class MCQView:

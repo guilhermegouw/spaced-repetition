@@ -1,9 +1,9 @@
 from datetime import date
 from typing import List, Optional, Tuple
 
-from db.database_manager import DatabaseManager
-from models.mcq import MCQQuestion
-from models.sm2 import SM2Calculator
+from src.db.database_manager import DatabaseManager
+from src.models.mcq import MCQQuestion
+from src.models.sm2 import SM2Calculator
 
 
 class MCQRepository:

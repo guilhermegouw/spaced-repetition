@@ -19,7 +19,7 @@ class Challenge(BaseModel):
         None, description="Test cases for the challenge"
     )
     language: str = Field(
-        ..., regex="^(python|javascript)$", description="Programming language"
+        ..., pattern="^(python|javascript)$", description="Programming language"
     )
     last_reviewed: Optional[date] = Field(
         default_factory=lambda: date.today(), description="Last review date"

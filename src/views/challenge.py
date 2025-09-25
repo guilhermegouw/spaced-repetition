@@ -9,8 +9,8 @@ import pyperclip
 import questionary
 from rich.console import Console
 
-from models.challenge import Challenge
-from templates import CHALLENGE_PROMPT_TEMPLATE
+from src.models.challenge import Challenge
+from src.templates import CHALLENGE_PROMPT_TEMPLATE
 
 
 class ChallengeView:

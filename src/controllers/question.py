@@ -2,9 +2,9 @@ from typing import Optional
 
 from rich.console import Console
 
-from models.question import Question
-from repositories.question import QuestionRepository
-from views.question import QuestionView
+from src.models.question import Question
+from src.repositories.question import QuestionRepository
+from src.views.question import QuestionView
 
 
 class QuestionController:

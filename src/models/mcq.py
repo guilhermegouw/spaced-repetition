@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, model_validator, validator
 
 
 class MCQQuestion(BaseModel):
@@ -13,7 +13,7 @@ class MCQQuestion(BaseModel):
     id: Optional[int] = None
     question: str = Field(..., min_length=1, description="The question text")
     question_type: str = Field(
-        ..., regex="^(mcq|true_false)$", description="Type of question"
+        ..., pattern="^(mcq|true_false)$", description="Type of question"
     )
     option_a: str = Field(..., min_length=1, description="Option A text")
     option_b: str = Field(..., min_length=1, description="Option B text")
@@ -24,7 +24,7 @@ class MCQQuestion(BaseModel):
         None, description="Option D text (MCQ only)"
     )
     correct_option: str = Field(
-        ..., regex="^[a-d]$", description="Correct option letter"
+        ..., pattern="^[a-d]$", description="Correct option letter"
     )
     explanation_a: Optional[str] = Field(
         None, description="Explanation for option A"
@@ -95,13 +95,13 @@ class MCQQuestion(BaseModel):
             return cleaned if cleaned else None
         return v
 
-    @root_validator
-    def validate_question_consistency(cls, values):
+    @model_validator(mode="after")
+    def validate_question_consistency(cls, model):
         """Validate that question type matches available options and correct answer."""
-        question_type = values.get("question_type")
-        option_c = values.get("option_c")
-        option_d = values.get("option_d")
-        correct_option = values.get("correct_option")
+        question_type = model.question_type
+        option_c = model.option_c
+        option_d = model.option_d
+        correct_option = model.correct_option
 
         if question_type == "true_false":
             if option_c is not None or option_d is not None:
@@ -125,7 +125,7 @@ class MCQQuestion(BaseModel):
                     "For MCQ questions, correct_option must be 'a', 'b', 'c', or 'd'"
                 )
 
-        return values
+        return model
 
     def __str__(self) -> str:
         """String representation for display purposes."""
