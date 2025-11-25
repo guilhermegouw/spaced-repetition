@@ -6,6 +6,7 @@ import typer
 from rich.console import Console
 
 from src.controllers.challenge import ChallengeController
+from src.controllers.export_import import ExportController, ImportController
 from src.controllers.mcq import MCQController
 from src.controllers.question import QuestionController
 
@@ -17,6 +18,8 @@ console = Console()
 question_controller = QuestionController()
 challenge_controller = ChallengeController()
 mcq_controller = MCQController()
+export_controller = ExportController()
+import_controller = ImportController()
 
 
 @app.command()
@@ -300,6 +303,57 @@ def health_check():
 
     except Exception as e:
         console.print(f"[bold red]❌ Health check failed: {str(e)}[/bold red]")
+
+
+@app.command()
+def export(
+    output: str = typer.Option(
+        None, "--output", "-o", help="Output file path"
+    ),
+    item_type: str = typer.Option(
+        None,
+        "--type",
+        "-t",
+        help="Filter by type: questions, challenges, or mcq",
+    ),
+    tags: str = typer.Option(
+        None, "--tags", help="Filter by tags (comma-separated)"
+    ),
+):
+    """
+    Export questions, challenges, and/or MCQs to JSON file.
+    """
+    console.print("[bold cyan]📤 Exporting data...[/bold cyan]\n")
+
+    # Validate item_type
+    if item_type and item_type not in ["questions", "challenges", "mcq"]:
+        console.print(
+            "[bold red]Error: --type must be one of: questions, challenges, mcq[/bold red]"
+        )
+        return
+
+    export_controller.export_all(
+        output_file=output, item_type=item_type, tags=tags
+    )
+
+
+@app.command()
+def import_data(
+    file: str = typer.Argument(..., help="JSON file to import"),
+    allow_duplicates: bool = typer.Option(
+        False,
+        "--allow-duplicates",
+        help="Allow importing duplicate items (default: skip duplicates)",
+    ),
+):
+    """
+    Import questions, challenges, and MCQs from JSON file.
+    """
+    console.print("[bold cyan]📥 Importing data...[/bold cyan]\n")
+
+    import_controller.import_from_file(
+        input_file=file, skip_duplicates=not allow_duplicates
+    )
 
 
 if __name__ == "__main__":

@@ -125,7 +125,7 @@ class ChallengeController:
             if not selected_challenge:
                 return
 
-            new_title, new_description, new_language, new_testcases = (
+            new_title, new_description, new_language, new_testcases, new_tags = (
                 self.view.prompt_update_fields(selected_challenge)
             )
 
@@ -136,6 +136,7 @@ class ChallengeController:
                     new_description,
                     new_language,
                     new_testcases,
+                    new_tags,
                 ]
             ):
                 return
@@ -146,6 +147,7 @@ class ChallengeController:
                 new_description,
                 new_language,
                 new_testcases,
+                new_tags,
             )
             self.view.show_challenge_updated(updated_challenge)
 

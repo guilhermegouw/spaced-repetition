@@ -53,11 +53,18 @@ class ChallengeView:
         if not testcases or not testcases.strip():
             testcases = None
 
+        tags = questionary.text(
+            "Enter tags (comma-separated, optional):"
+        ).ask()
+        if not tags or not tags.strip():
+            tags = None
+
         return Challenge(
             title=title.strip(),
             description=description.strip(),
             language=language,
             testcases=testcases,
+            tags=tags,
         )
 
     def prompt_challenge_selection(
@@ -100,9 +107,10 @@ class ChallengeView:
 
         self.console.print("[bold cyan]Challenges due for review:[/bold cyan]")
         for challenge in challenges:
+            tags_str = f" [Tags: {challenge.tags}]" if challenge.tags else ""
             self.console.print(
                 f"[bold yellow]ID {challenge.id}[/bold yellow]: "
-                f"{challenge.title} (Language: {challenge.language})"
+                f"{challenge.title} (Language: {challenge.language}){tags_str}"
             )
 
     def show_all_challenges(self, challenges: List[Challenge]) -> None:
@@ -118,12 +126,13 @@ class ChallengeView:
 
         self.console.print("[bold cyan]All Challenges:[/bold cyan]")
         for challenge in challenges:
+            tags_str = f", Tags: {challenge.tags}" if challenge.tags else ""
             self.console.print(
                 f"[bold yellow]ID {challenge.id}[/bold yellow]: "
                 f"{challenge.title} "
                 f"(Language: {challenge.language}, "
                 f"Interval: {challenge.interval}, "
-                f"Last Reviewed: {challenge.last_reviewed})"
+                f"Last Reviewed: {challenge.last_reviewed}{tags_str})"
             )
 
     def setup_challenge_workspace(
@@ -249,7 +258,7 @@ class ChallengeView:
 
     def prompt_update_fields(
         self, challenge: Challenge
-    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]:
         """
         Prompt user for challenge updates.
 
@@ -257,7 +266,7 @@ class ChallengeView:
             challenge: Current challenge object
 
         Returns:
-            Tuple of (new_title, new_description, new_language, new_testcases) or (None, None, None, None) if no updates
+            Tuple of (new_title, new_description, new_language, new_testcases, new_tags) or (None, None, None, None, None) if no updates
         """
         self.console.print(
             f"[bold cyan]Current title:[/bold cyan] {challenge.title}"
@@ -267,6 +276,9 @@ class ChallengeView:
         )
         self.console.print(
             f"[bold cyan]Current language:[/bold cyan] {challenge.language}"
+        )
+        self.console.print(
+            f"[bold cyan]Current tags:[/bold cyan] {challenge.tags or 'None'}"
         )
 
         update_title = questionary.confirm("Update the title?").ask()
@@ -301,18 +313,26 @@ class ChallengeView:
                 "Enter the new test cases:", default=challenge.testcases or ""
             ).ask()
 
+        update_tags = questionary.confirm("Update the tags?").ask()
+        new_tags = None
+        if update_tags:
+            new_tags = questionary.text(
+                "Enter the new tags (comma-separated):", default=challenge.tags or ""
+            ).ask()
+
         if not any(
             [
                 update_title,
                 update_description,
                 update_language,
                 update_testcases,
+                update_tags,
             ]
         ):
             self.show_warning("No changes made.")
-            return None, None, None, None
+            return None, None, None, None, None
 
-        return new_title, new_description, new_language, new_testcases
+        return new_title, new_description, new_language, new_testcases, new_tags
 
     def prompt_testcases_input(self) -> Optional[str]:
         """

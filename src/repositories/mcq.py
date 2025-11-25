@@ -348,6 +348,41 @@ class MCQRepository:
         except Exception as e:
             raise Exception(f"Error deleting MCQ question: {e}")
 
+    def get_by_tags(self, tags: str) -> List[MCQQuestion]:
+        """
+        Retrieve MCQ questions that contain any of the specified tags.
+
+        Args:
+            tags: Comma-separated tags to filter by
+
+        Returns:
+            List of MCQQuestion objects matching the tags
+        """
+        if not tags:
+            return []
+
+        # Split tags and build LIKE clauses for each tag
+        tag_list = [tag.strip().lower() for tag in tags.split(",")]
+        like_clauses = " OR ".join(
+            ["LOWER(tags) LIKE ?" for _ in tag_list]
+        )
+        query = f"""
+        SELECT id, question, question_type, option_a, option_b, option_c, option_d,
+               correct_option, explanation_a, explanation_b, explanation_c, explanation_d,
+               tags, last_reviewed, interval, ease_factor
+        FROM mcq_questions
+        WHERE {like_clauses};
+        """
+
+        # Create LIKE patterns for each tag
+        params = [f"%{tag}%" for tag in tag_list]
+
+        try:
+            results = self.db.fetch_all(query, tuple(params))
+            return [self._row_to_mcq_question(row) for row in results]
+        except Exception as e:
+            raise Exception(f"Error retrieving MCQ questions by tags: {e}")
+
     def _row_to_mcq_question(self, row) -> MCQQuestion:
         """
         Convert a database row to an MCQQuestion object.

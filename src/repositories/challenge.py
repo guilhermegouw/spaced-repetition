@@ -27,8 +27,8 @@ class ChallengeRepository:
             Challenge object with populated ID
         """
         insert_query = """
-        INSERT INTO challenges (title, description, language, testcases, last_reviewed, interval, ease_factor)
-        VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO challenges (title, description, language, testcases, tags, last_reviewed, interval, ease_factor)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """
         try:
             challenge.id = self.db.execute_query(
@@ -38,6 +38,7 @@ class ChallengeRepository:
                     challenge.description,
                     challenge.language,
                     challenge.testcases,
+                    challenge.tags,
                     challenge.last_reviewed.isoformat(),
                     challenge.interval,
                     challenge.ease_factor,
@@ -58,7 +59,7 @@ class ChallengeRepository:
             Challenge object if found, None otherwise
         """
         query = """
-        SELECT id, title, description, testcases, language, last_reviewed, interval, ease_factor
+        SELECT id, title, description, testcases, language, tags, last_reviewed, interval, ease_factor
         FROM challenges WHERE id = ?;
         """
         try:
@@ -75,7 +76,7 @@ class ChallengeRepository:
             List of all Challenge objects
         """
         query = """
-        SELECT id, title, description, testcases, language, last_reviewed, interval, ease_factor
+        SELECT id, title, description, testcases, language, tags, last_reviewed, interval, ease_factor
         FROM challenges;
         """
         try:
@@ -93,7 +94,7 @@ class ChallengeRepository:
             List of due Challenge objects
         """
         query = """
-        SELECT id, title, description, testcases, language, last_reviewed, interval, ease_factor
+        SELECT id, title, description, testcases, language, tags, last_reviewed, interval, ease_factor
         FROM challenges
         WHERE julianday('now') - julianday(DATE(last_reviewed, '+' || interval || ' days')) > 0
         ORDER BY julianday('now') - julianday(DATE(last_reviewed, '+' || interval || ' days')) DESC;
@@ -112,7 +113,7 @@ class ChallengeRepository:
             List of challenges without test cases
         """
         query = """
-        SELECT id, title, description, testcases, language, last_reviewed, interval, ease_factor
+        SELECT id, title, description, testcases, language, tags, last_reviewed, interval, ease_factor
         FROM challenges
         WHERE testcases IS NULL OR testcases = '';
         """
@@ -218,6 +219,7 @@ class ChallengeRepository:
         new_description: Optional[str] = None,
         new_language: Optional[str] = None,
         new_testcases: Optional[str] = None,
+        new_tags: Optional[str] = None,
     ) -> Challenge:
         """
         Update an existing challenge's content.
@@ -228,6 +230,7 @@ class ChallengeRepository:
             new_description: New description (optional)
             new_language: New language (optional)
             new_testcases: New test cases (optional)
+            new_tags: New tags (optional)
 
         Returns:
             Updated Challenge object
@@ -254,6 +257,11 @@ class ChallengeRepository:
             fields_to_update.append("testcases = ?")
             params.append(new_testcases)
             challenge.testcases = new_testcases
+
+        if new_tags is not None:
+            fields_to_update.append("tags = ?")
+            params.append(new_tags)
+            challenge.tags = new_tags
 
         if not fields_to_update:
             return challenge
@@ -318,6 +326,39 @@ class ChallengeRepository:
         except Exception as e:
             raise Exception(f"Error deleting challenge: {e}")
 
+    def get_by_tags(self, tags: str) -> List[Challenge]:
+        """
+        Retrieve challenges that contain any of the specified tags.
+
+        Args:
+            tags: Comma-separated tags to filter by
+
+        Returns:
+            List of Challenge objects matching the tags
+        """
+        if not tags:
+            return []
+
+        # Split tags and build LIKE clauses for each tag
+        tag_list = [tag.strip().lower() for tag in tags.split(",")]
+        like_clauses = " OR ".join(
+            ["LOWER(tags) LIKE ?" for _ in tag_list]
+        )
+        query = f"""
+        SELECT id, title, description, testcases, language, tags, last_reviewed, interval, ease_factor
+        FROM challenges
+        WHERE {like_clauses};
+        """
+
+        # Create LIKE patterns for each tag
+        params = [f"%{tag}%" for tag in tag_list]
+
+        try:
+            results = self.db.fetch_all(query, tuple(params))
+            return [self._row_to_challenge(row) for row in results]
+        except Exception as e:
+            raise Exception(f"Error retrieving challenges by tags: {e}")
+
     def _row_to_challenge(self, row) -> Challenge:
         """
         Convert a database row to a Challenge object.
@@ -329,8 +370,8 @@ class ChallengeRepository:
             Challenge object
         """
         last_reviewed = None
-        if row[5]:
-            last_reviewed = date.fromisoformat(row[5])
+        if row[6]:
+            last_reviewed = date.fromisoformat(row[6])
 
         return Challenge(
             id=row[0],
@@ -338,7 +379,8 @@ class ChallengeRepository:
             description=row[2],
             testcases=row[3],
             language=row[4],
+            tags=row[5],
             last_reviewed=last_reviewed,
-            interval=row[6],
-            ease_factor=row[7],
+            interval=row[7],
+            ease_factor=row[8],
         )

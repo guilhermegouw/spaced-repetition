@@ -243,6 +243,39 @@ class QuestionRepository:
         except Exception as e:
             raise Exception(f"Error deleting question: {e}")
 
+    def get_by_tags(self, tags: str) -> List[Question]:
+        """
+        Retrieve questions that contain any of the specified tags.
+
+        Args:
+            tags: Comma-separated tags to filter by
+
+        Returns:
+            List of Question objects matching the tags
+        """
+        if not tags:
+            return []
+
+        # Split tags and build LIKE clauses for each tag
+        tag_list = [tag.strip().lower() for tag in tags.split(",")]
+        like_clauses = " OR ".join(
+            ["LOWER(tags) LIKE ?" for _ in tag_list]
+        )
+        query = f"""
+        SELECT id, question, tags, last_reviewed, interval, ease_factor
+        FROM questions
+        WHERE {like_clauses};
+        """
+
+        # Create LIKE patterns for each tag
+        params = [f"%{tag}%" for tag in tag_list]
+
+        try:
+            results = self.db.fetch_all(query, tuple(params))
+            return [self._row_to_question(row) for row in results]
+        except Exception as e:
+            raise Exception(f"Error retrieving questions by tags: {e}")
+
     def _row_to_question(self, row) -> Question:
         """
         Convert a database row to a Question object.

@@ -21,6 +21,7 @@ class Challenge(BaseModel):
     language: str = Field(
         ..., pattern="^(python|javascript)$", description="Programming language"
     )
+    tags: Optional[str] = None
     last_reviewed: Optional[date] = Field(
         default_factory=lambda: date.today(), description="Last review date"
     )
@@ -65,6 +66,13 @@ class Challenge(BaseModel):
         if v not in ["python", "javascript"]:
             raise ValueError("Language must be either python or javascript")
         return v.lower()
+
+    @validator("tags")
+    def clean_tags(cls, v):
+        """Clean and normalize tags."""
+        if v:
+            return v.strip() if v.strip() else None
+        return v
 
     def __str__(self) -> str:
         """String representation for display purposes."""

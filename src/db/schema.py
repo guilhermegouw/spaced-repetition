@@ -64,6 +64,10 @@ def initialize_db():
     ALTER TABLE mcq_questions ADD COLUMN explanation_d TEXT;
     """
 
+    add_tags_to_challenges_query = """
+    ALTER TABLE challenges ADD COLUMN tags TEXT;
+    """
+
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -77,6 +81,12 @@ def initialize_db():
             cursor.execute(add_explanation_columns_query_c)
             cursor.execute(add_explanation_columns_query_d)
             print("Added explanation columns to existing mcq_questions table")
+        except Exception:
+            pass
+
+        try:
+            cursor.execute(add_tags_to_challenges_query)
+            print("Added tags column to existing challenges table")
         except Exception:
             pass
 
