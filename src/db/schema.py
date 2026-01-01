@@ -1,4 +1,4 @@
-from db.connection import get_connection
+from .connection import get_connection
 
 
 def initialize_db():
@@ -23,7 +23,7 @@ def initialize_db():
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     testcases TEXT,
-    language TEXT CHECK(language IN ('python', 'javascript')) NOT NULL,
+    language TEXT CHECK(language IN ('python', 'javascript', 'go')) NOT NULL,
     last_reviewed DATE DEFAULT CURRENT_DATE,
     interval INTEGER DEFAULT 1,
     ease_factor REAL DEFAULT 2.5
@@ -64,6 +64,10 @@ def initialize_db():
     ALTER TABLE mcq_questions ADD COLUMN explanation_d TEXT;
     """
 
+    add_tags_to_challenges_query = """
+    ALTER TABLE challenges ADD COLUMN tags TEXT;
+    """
+
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -77,6 +81,12 @@ def initialize_db():
             cursor.execute(add_explanation_columns_query_c)
             cursor.execute(add_explanation_columns_query_d)
             print("Added explanation columns to existing mcq_questions table")
+        except Exception:
+            pass
+
+        try:
+            cursor.execute(add_tags_to_challenges_query)
+            print("Added tags column to existing challenges table")
         except Exception:
             pass
 
