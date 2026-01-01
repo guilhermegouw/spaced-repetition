@@ -19,7 +19,7 @@ class Challenge(BaseModel):
         None, description="Test cases for the challenge"
     )
     language: str = Field(
-        ..., pattern="^(python|javascript)$", description="Programming language"
+        ..., pattern="^(python|javascript|go)$", description="Programming language"
     )
     tags: Optional[str] = None
     last_reviewed: Optional[date] = Field(
@@ -63,8 +63,8 @@ class Challenge(BaseModel):
     @validator("language")
     def validate_language(cls, v):
         """Ensure language is supported."""
-        if v not in ["python", "javascript"]:
-            raise ValueError("Language must be either python or javascript")
+        if v not in ["python", "javascript", "go"]:
+            raise ValueError("Language must be python, javascript, or go")
         return v.lower()
 
     @validator("tags")

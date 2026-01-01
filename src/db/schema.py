@@ -1,4 +1,4 @@
-from db.connection import get_connection
+from .connection import get_connection
 
 
 def initialize_db():
@@ -23,7 +23,7 @@ def initialize_db():
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     testcases TEXT,
-    language TEXT CHECK(language IN ('python', 'javascript')) NOT NULL,
+    language TEXT CHECK(language IN ('python', 'javascript', 'go')) NOT NULL,
     last_reviewed DATE DEFAULT CURRENT_DATE,
     interval INTEGER DEFAULT 1,
     ease_factor REAL DEFAULT 2.5

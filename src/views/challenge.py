@@ -43,7 +43,7 @@ class ChallengeView:
 
         language = questionary.select(
             "Choose the language for the challenge:",
-            choices=["python", "javascript"],
+            choices=["python", "javascript", "go"],
         ).ask()
         if not language:
             self.show_warning("No language selected.")
@@ -156,6 +156,10 @@ class ChallengeView:
             )
         elif challenge.language == "javascript":
             challenge_file_path = self._setup_javascript_files(
+                challenge, folder_name
+            )
+        elif challenge.language == "go":
+            challenge_file_path = self._setup_golang_files(
                 challenge, folder_name
             )
         else:
@@ -302,7 +306,7 @@ class ChallengeView:
         if update_language:
             new_language = questionary.select(
                 "Choose the new language:",
-                choices=["python", "javascript"],
+                choices=["python", "javascript", "go"],
                 default=challenge.language,
             ).ask()
 
@@ -453,6 +457,56 @@ class ChallengeView:
                 test_file.write(
                     f"const {function_name} = require('./challenge');\n\n"
                     f"{challenge.testcases}\n"
+                )
+
+        return challenge_path
+
+    def _setup_golang_files(
+        self, challenge: Challenge, folder_name: str
+    ) -> str:
+        """
+        Set up Go challenge files.
+
+        Args:
+            challenge: Challenge object
+            folder_name: Name of the folder
+
+        Returns:
+            Path to the main challenge file
+        """
+        function_name = "".join(
+            word.capitalize() for word in folder_name.split("_")
+        )
+
+        # Initialize go module
+        subprocess.run(
+            ["go", "mod", "init", "challenge"],
+            cwd=folder_name,
+            capture_output=True,
+        )
+
+        # Create challenge.go
+        challenge_path = os.path.join(folder_name, "challenge.go")
+        with open(challenge_path, "w", encoding="utf-8") as challenge_file:
+            challenge_file.write(
+                f"package main\n\n"
+                f"/*\n"
+                f"Title: {challenge.title}\n\n"
+                f"Description:\n{challenge.description}\n"
+                f"*/\n\n"
+                f"func {function_name}() {{\n"
+                f"\t// Write your solution here...\n"
+                f"}}\n"
+            )
+
+        # Create test file if testcases provided
+        if challenge.testcases:
+            test_path = os.path.join(folder_name, "challenge_test.go")
+            with open(test_path, "w", encoding="utf-8") as test_file:
+                test_file.write(
+                    f'package main\n\n'
+                    f'import "testing"\n\n'
+                    f'{challenge.testcases}\n'
                 )
 
         return challenge_path
