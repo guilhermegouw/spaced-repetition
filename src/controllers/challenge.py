@@ -1,6 +1,10 @@
 from typing import Optional
 
+from src.config import get_config
+from src.models.evaluation import UserAction
 from src.repositories.challenge import ChallengeRepository
+from src.services.api_client import APIError
+from src.services.evaluator import EvaluationService
 from src.views.challenge import ChallengeView
 
 
@@ -39,13 +43,15 @@ class ChallengeController:
 
     def review_challenges(self) -> None:
         """
-        Handle the complete review workflow.
-        - Get due challenges
-        - Let user select one
-        - Set up workspace and open editor
-        - Generate evaluation prompt
-        - Get grade and update SM-2 values
-        - Clean up workspace
+        Handle the complete review workflow with API-based evaluation.
+
+        Flow:
+        1. Get due challenges, let user select one
+        2. Set up workspace and open editor
+        3. Send to API for evaluation (or clipboard fallback)
+        4. Display evaluation, allow dispute/refactor loop
+        5. Update SM-2 with FIRST grade
+        6. Clean up workspace
         """
         try:
             due_challenges = self.repository.get_due_challenges()
@@ -61,33 +67,164 @@ class ChallengeController:
             )
 
             if not selected_challenge:
-                return  # User cancelled
+                return
 
             folder_path, challenge_file_path = (
                 self.view.setup_challenge_workspace(selected_challenge)
             )
 
             try:
+                self._run_evaluation_loop(
+                    selected_challenge,
+                    folder_path,
+                    challenge_file_path,
+                )
+            except Exception as e:
+                self.view.cleanup_workspace(folder_path)
+                raise e
+
+        except Exception as e:
+            self.view.show_error(f"Failed to review challenge: {str(e)}")
+
+    def _run_evaluation_loop(
+        self,
+        challenge,
+        folder_path: str,
+        challenge_file_path: str,
+    ) -> None:
+        """
+        Run the evaluation loop with API or fallback to clipboard.
+
+        Args:
+            challenge: Challenge being reviewed
+            folder_path: Path to workspace folder
+            challenge_file_path: Path to solution file
+        """
+        config = get_config()
+
+        self.view.open_challenge_in_editor(folder_path, challenge_file_path)
+
+        if not config.api.is_configured:
+            self._fallback_clipboard_evaluation(
+                challenge, folder_path, challenge_file_path
+            )
+            return
+
+        evaluator = None
+        try:
+            evaluator = EvaluationService()
+            session = evaluator.create_session(
+                challenge_id=challenge.id,
+                challenge_file_path=challenge_file_path,
+                folder_path=folder_path,
+            )
+
+            self._api_evaluation_loop(
+                challenge, session, evaluator, folder_path, challenge_file_path
+            )
+
+        except APIError as e:
+            self.view.show_api_error(str(e))
+            if (
+                config.use_clipboard_fallback
+                and self.view.prompt_fallback_to_clipboard()
+            ):
+                self._fallback_clipboard_evaluation(
+                    challenge, folder_path, challenge_file_path
+                )
+            else:
+                self.view.cleanup_workspace(folder_path)
+        finally:
+            if evaluator:
+                evaluator.close()
+
+    def _api_evaluation_loop(
+        self,
+        challenge,
+        session,
+        evaluator,
+        folder_path: str,
+        challenge_file_path: str,
+    ) -> None:
+        """
+        Main API evaluation loop with dispute/refactor support.
+        """
+        with open(challenge_file_path, "r", encoding="utf-8") as f:
+            solution_content = f.read()
+
+        with self.view.show_evaluating_spinner():
+            evaluation = evaluator.evaluate(session, solution_content)
+        self.view.show_evaluation_result(evaluation, session.iteration)
+
+        while True:
+            action = self.view.prompt_evaluation_action(
+                session.first_grade, session.current_grade
+            )
+
+            if action == UserAction.ACCEPT:
+                self.view.show_sm2_grade_info(
+                    session.first_grade, session.current_grade
+                )
+                updated_challenge = self.repository.mark_reviewed(
+                    challenge, session.get_sm2_grade()
+                )
+                self.view.show_challenge_reviewed(updated_challenge)
+
+                self.view.cleanup_workspace(folder_path)
+                break
+
+            elif action == UserAction.DISPUTE:
+                dispute_reason = self.view.prompt_dispute_reason()
+                if dispute_reason:
+                    try:
+                        with self.view.show_evaluating_spinner():
+                            evaluation = evaluator.dispute(
+                                session, dispute_reason
+                            )
+                        self.view.show_evaluation_result(
+                            evaluation, session.iteration
+                        )
+                    except APIError as e:
+                        self.view.show_api_error(str(e))
+
+            elif action == UserAction.REFACTOR:
                 self.view.open_challenge_in_editor(
                     folder_path, challenge_file_path
                 )
 
-                self.view.show_evaluation_prompt(challenge_file_path)
-                grade = self.view.prompt_grade_input()
-                if grade is None:
-                    return
+                with open(challenge_file_path, "r", encoding="utf-8") as f:
+                    new_solution = f.read()
 
-                updated_challenge = self.repository.mark_reviewed(
-                    selected_challenge, int(grade)
-                )
+                try:
+                    with self.view.show_evaluating_spinner():
+                        evaluation = evaluator.refactor_evaluate(
+                            session, new_solution
+                        )
+                    self.view.show_evaluation_result(
+                        evaluation, session.iteration
+                    )
+                except APIError as e:
+                    self.view.show_api_error(str(e))
 
-                self.view.show_challenge_reviewed(updated_challenge)
+    def _fallback_clipboard_evaluation(
+        self,
+        challenge,
+        folder_path: str,
+        challenge_file_path: str,
+    ) -> None:
+        """
+        Original clipboard-based evaluation flow (fallback).
+        """
+        self.view.show_evaluation_prompt(challenge_file_path)
+        grade = self.view.prompt_grade_input()
 
-            finally:
-                self.view.cleanup_workspace(folder_path)
+        if grade is not None:
+            updated_challenge = self.repository.mark_reviewed(
+                challenge, int(grade)
+            )
+            self.view.show_challenge_reviewed(updated_challenge)
 
-        except Exception as e:
-            self.view.show_error(f"Failed to review challenge: {str(e)}")
+        self.view.cleanup_workspace(folder_path)
 
     def list_challenges(self) -> None:
         """

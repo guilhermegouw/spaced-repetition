@@ -8,8 +8,12 @@ from typing import List, Optional, Tuple
 import pyperclip
 import questionary
 from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.rule import Rule
 
 from src.models.challenge import Challenge
+from src.models.evaluation import EvaluationResponse, UserAction
 from src.templates import CHALLENGE_PROMPT_TEMPLATE
 
 
@@ -553,4 +557,138 @@ class ChallengeView:
         """Show confirmation that test cases were added successfully."""
         self.show_success(
             f"Test cases added to challenge ID {challenge_id} successfully!"
+        )
+
+    def show_evaluating_spinner(self):
+        """
+        Show a spinner while waiting for API evaluation.
+
+        Returns:
+            Context manager for the spinner status.
+        """
+        self.console.print()
+        self.console.print(Rule("[bold cyan]Evaluation[/bold cyan]"))
+        self.console.print()
+        return self.console.status(
+            "[bold cyan]Evaluating your solution...[/bold cyan]",
+            spinner="dots",
+        )
+
+    def show_evaluation_result(
+        self, evaluation: EvaluationResponse, iteration: int
+    ) -> None:
+        """
+        Display the API evaluation result with Markdown rendering.
+
+        Args:
+            evaluation: Parsed evaluation response
+            iteration: Current iteration number
+        """
+        if iteration == 1:
+            title = "Initial Evaluation"
+        else:
+            title = f"Re-evaluation (iteration {iteration})"
+
+        grade_color = (
+            "green" if evaluation.grade >= 2.5
+            else "yellow" if evaluation.grade >= 1.5
+            else "red"
+        )
+
+        header = f"[bold {grade_color}]Grade: {evaluation.grade:.1f}/3[/bold {grade_color}]"
+
+        md_content = Markdown(evaluation.feedback)
+
+        self.console.print()
+        self.console.print(
+            Panel(
+                md_content,
+                title=f"[bold cyan]{title}[/bold cyan]",
+                subtitle=header,
+                border_style="cyan",
+                padding=(1, 2),
+            )
+        )
+
+    def prompt_evaluation_action(
+        self, first_grade: float, current_grade: float
+    ) -> UserAction:
+        """
+        Prompt user for action after seeing evaluation.
+
+        Args:
+            first_grade: The first evaluation grade (will be used for SM-2)
+            current_grade: The current evaluation grade
+
+        Returns:
+            Selected user action
+        """
+        self.console.print(
+            f"\n[dim]Note: Your SM-2 grade will be {int(first_grade)} "
+            "(first evaluation)[/dim]"
+        )
+
+        choices = [
+            "Accept - Save grade and finish",
+            "Dispute - Explain why you disagree",
+            "Refactor - Improve solution and re-evaluate",
+        ]
+
+        selected = questionary.select(
+            "What would you like to do?",
+            choices=choices,
+        ).ask()
+
+        if selected is None or "Accept" in selected:
+            return UserAction.ACCEPT
+        elif "Dispute" in selected:
+            return UserAction.DISPUTE
+        else:
+            return UserAction.REFACTOR
+
+    def prompt_dispute_reason(self) -> Optional[str]:
+        """
+        Prompt user for dispute explanation.
+
+        Returns:
+            User's dispute reason or None if cancelled
+        """
+        reason = questionary.text(
+            "Explain why you disagree with the evaluation:",
+            multiline=True,
+        ).ask()
+
+        if not reason or not reason.strip():
+            self.show_warning("No dispute reason provided.")
+            return None
+
+        return reason.strip()
+
+    def show_api_error(self, error: str) -> None:
+        """Display API error message."""
+        self.show_error(f"API Error: {error}")
+
+    def prompt_fallback_to_clipboard(self) -> bool:
+        """
+        Ask user if they want to fall back to clipboard method.
+
+        Returns:
+            True if user wants clipboard fallback
+        """
+        return questionary.confirm(
+            "Would you like to use the clipboard method instead?",
+            default=True,
+        ).ask()
+
+    def show_sm2_grade_info(
+        self, first_grade: float, final_grade: float
+    ) -> None:
+        """Show information about which grade is used for SM-2."""
+        if first_grade != final_grade:
+            self.console.print(
+                f"\n[dim]Your solution improved from {first_grade:.1f} "
+                f"to {final_grade:.1f}![/dim]"
+            )
+        self.console.print(
+            f"[bold]SM-2 update using first grade: {int(first_grade)}[/bold]"
         )
