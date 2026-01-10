@@ -10,13 +10,14 @@ class SM2Calculator:
 
     @staticmethod
     def calculate_next_review(
-        rating: int, current_interval: int, current_ease_factor: float
+        rating: float, current_interval: int, current_ease_factor: float
     ) -> Tuple[int, float]:
         """
         Calculate next review interval and ease factor based on SM-2 algorithm.
 
         Args:
-            rating: User's performance rating (0-3)
+            rating: User's performance rating (0-3), supports floats for
+                   granular adjustments
                    0 = forgot/incorrect
                    1 = hard/low confidence
                    2 = good/medium confidence

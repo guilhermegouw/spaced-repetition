@@ -197,8 +197,8 @@ class TestEvaluationSession:
         assert session.current_grade == 3.0
         assert session.iteration == 3
 
-    def test_get_sm2_grade_returns_int(self):
-        """Should return first grade as integer for SM-2."""
+    def test_get_sm2_grade_returns_float(self):
+        """Should return first grade as float for SM-2."""
         session = EvaluationSession(
             challenge_id=1,
             challenge_file_path="",
@@ -206,8 +206,8 @@ class TestEvaluationSession:
         )
         session.record_evaluation(2.7)
 
-        assert session.get_sm2_grade() == 2
-        assert isinstance(session.get_sm2_grade(), int)
+        assert session.get_sm2_grade() == 2.7
+        assert isinstance(session.get_sm2_grade(), float)
 
     def test_get_sm2_grade_raises_if_no_evaluation(self):
         """Should raise error if no evaluation recorded."""

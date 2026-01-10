@@ -152,6 +152,7 @@ class ChallengeController:
         with open(challenge_file_path, "r", encoding="utf-8") as f:
             solution_content = f.read()
 
+        self.view.clear_screen()
         with self.view.show_evaluating_spinner():
             evaluation = evaluator.evaluate(session, solution_content)
         self.view.show_evaluation_result(evaluation, session.iteration)
@@ -195,6 +196,7 @@ class ChallengeController:
                 with open(challenge_file_path, "r", encoding="utf-8") as f:
                     new_solution = f.read()
 
+                self.view.clear_screen()
                 try:
                     with self.view.show_evaluating_spinner():
                         evaluation = evaluator.refactor_evaluate(
@@ -220,7 +222,7 @@ class ChallengeController:
 
         if grade is not None:
             updated_challenge = self.repository.mark_reviewed(
-                challenge, int(grade)
+                challenge, grade
             )
             self.view.show_challenge_reviewed(updated_challenge)
 

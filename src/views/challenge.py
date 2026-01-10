@@ -567,12 +567,17 @@ class ChallengeView:
             Context manager for the spinner status.
         """
         self.console.print()
+        self.console.print()
         self.console.print(Rule("[bold cyan]Evaluation[/bold cyan]"))
         self.console.print()
         return self.console.status(
-            "[bold cyan]Evaluating your solution...[/bold cyan]",
+            "[bold yellow]Evaluating your solution...[/bold yellow]",
             spinner="dots",
         )
+
+    def clear_screen(self) -> None:
+        """Clear the terminal screen."""
+        self.console.clear()
 
     def show_evaluation_result(
         self, evaluation: EvaluationResponse, iteration: int
@@ -624,8 +629,8 @@ class ChallengeView:
             Selected user action
         """
         self.console.print(
-            f"\n[dim]Note: Your SM-2 grade will be {int(first_grade)} "
-            "(first evaluation)[/dim]"
+            f"\n[dim]Note: SM-2 will use grade {first_grade:.2f} "
+            "(from first evaluation)[/dim]"
         )
 
         choices = [
@@ -690,5 +695,5 @@ class ChallengeView:
                 f"to {final_grade:.1f}![/dim]"
             )
         self.console.print(
-            f"[bold]SM-2 update using first grade: {int(first_grade)}[/bold]"
+            f"[bold]SM-2 update using first grade: {first_grade:.2f}[/bold]"
         )

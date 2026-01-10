@@ -148,8 +148,8 @@ class EvaluationSession(BaseModel):
         if self.first_grade is None:
             self.first_grade = grade
 
-    def get_sm2_grade(self) -> int:
-        """Get the grade to use for SM-2 (always first grade, as integer 0-3)."""
+    def get_sm2_grade(self) -> float:
+        """Get the grade to use for SM-2 (always first grade as float 0-3)."""
         if self.first_grade is None:
             raise ValueError("No evaluation recorded yet")
-        return int(self.first_grade)
+        return self.first_grade

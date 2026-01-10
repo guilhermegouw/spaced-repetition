@@ -168,13 +168,13 @@ class ChallengeRepository:
             and len(challenge.testcases.strip()) > 0
         )
 
-    def mark_reviewed(self, challenge: Challenge, rating: int) -> Challenge:
+    def mark_reviewed(self, challenge: Challenge, rating: float) -> Challenge:
         """
         Mark a challenge as reviewed and update SM-2 values.
 
         Args:
             challenge: Challenge that was reviewed
-            rating: User's performance rating (0-3)
+            rating: User's performance rating (0-3), supports floats
 
         Returns:
             Updated Challenge object
