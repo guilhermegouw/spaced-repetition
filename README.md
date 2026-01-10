@@ -34,10 +34,43 @@ pip install -r requirements.txt
 python main.py
 ```
 
-4. Set up JavaScript testing environment: 
+4. Set up JavaScript testing environment:
 ```
 npm install
 ```
+
+5. Configure environment variables:
+```
+cp .env-sample .env
+```
+
+Edit `.env` and configure your settings (see API Configuration below).
+
+##### API Configuration (Z.AI / GLM)
+
+The app integrates with Z.AI's GLM API for automatic evaluation of your challenge solutions. To enable this feature:
+
+1. **Get your API key**: Visit [Z.AI API Key Management](https://z.ai/manage-apikey/apikey-list) and create an API key.
+
+2. **Configure the `.env` file**:
+```
+# Required: Your Z.AI API key
+ZAI_API_KEY=your-api-key-here
+
+# Optional: API endpoint ("default" or "coding" for coding-specific evaluation)
+ZAI_BASE_URL=default
+
+# Optional: Enable/disable API evaluation (default: true)
+ZAI_ENABLED=true
+
+# Optional: Fall back to clipboard if API fails (default: true)
+USE_CLIPBOARD_FALLBACK=true
+```
+
+**Notes:**
+- The app uses the `glm-4.7` model by default
+- If `ZAI_ENABLED=false` or no API key is configured, the app will copy evaluation prompts to your clipboard instead
+- When `USE_CLIPBOARD_FALLBACK=true`, the app will automatically fall back to clipboard if the API call fails
 
 #### Usage
 
